@@ -4,7 +4,7 @@ dotenv.config();
 
 const express = require('express');
 const { Client } = require('pg');
-
+const cors = require('cors');
 // Importación de rutas
 const productosRouter = require('./routes/productos');
 const movimientosRouter = require('./routes/movimientos');
@@ -22,6 +22,7 @@ const client = new Client({
   password: process.env.PG_PASSWORD,
   port: 5432,
 });
+app.use(cors());
 
 // 3. Conexión a la base de datos
 client.connect()

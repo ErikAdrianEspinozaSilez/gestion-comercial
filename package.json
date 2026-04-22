@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tanstack/react-query": "^5.99.2",
+    "cors": "^2.8.6",
+    "create-vite": "^2.9.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.20.0"
