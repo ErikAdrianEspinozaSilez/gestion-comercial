@@ -14,13 +14,23 @@ const RegistrarMovimiento: React.FC = () => {
     queryFn: async () => (await axios.get('http://localhost:3000/productos')).data,
   });
 
-  const mutation = useMutation({
+const mutation = useMutation({
     mutationFn: (nuevoMov: any) => axios.post('http://localhost:3000/movimientos', nuevoMov),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['movimientos'] });
-      alert("Movimiento registrado con éxito");
-      setCantidad(0);
+    onSuccess: async () => {
+      // 1. Forzamos la actualización de las consultas y esperamos a que termine
+      await queryClient.invalidateQueries({ queryKey: ['productos'] });
+      await queryClient.invalidateQueries({ queryKey: ['movimientos'] });
+      
+      // 2. Limpiamos el formulario antes del alert para que se vea el cambio atrás
+      setCantidad(1); 
+      setProductoId(''); 
+
+      // 3. El alert ahora no bloquea la actualización visual
+      console.log("✅ Datos sincronizados con la base de datos");
     },
+    onError: (error: any) => {
+      alert("❌ Error: " + error.response?.data?.error);
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {

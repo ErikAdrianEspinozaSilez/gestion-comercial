@@ -1,7 +1,10 @@
 import AgregarProducto from './AgregarProducto';
 import ListaProductos from './ListaProductos';
 import RegistrarMovimiento from './RegistrarMovimiento';
-import HistorialMovimientos from './HistorialMovimientos'; // 1. ESTA ES LA IMPORTACIÓN
+import HistorialMovimientos from './HistorialMovimientos';
+import AlertasInventario from './AlertasInventario';
+import LectorVentas from './LectorVentas';
+import DashboardStats from './DashboardStats'; // <--- 1. Importamos el nuevo Dashboard
 
 function App() {
   return (
@@ -18,23 +21,38 @@ function App() {
         padding: '20px', 
         borderRadius: '12px', 
         textAlign: 'center',
-        marginBottom: '30px'
+        marginBottom: '30px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
       }}>
-        <h1>GESTIÓN COMERCIAL - SUPER VALLE</h1>
+        <h1 style={{ margin: 0 }}>GESTIÓN COMERCIAL - SUPER VALLE</h1>
       </header>
 
       <main>
+        {/* NUEVO: Las estadísticas del Dashboard justo al inicio */}
+        <DashboardStats /> 
+
+        {/* Alertas de stock bajo para visibilidad inmediata */}
+        <AlertasInventario />
+
+        {/* Lector de ventas para registrar salidas rápidamente */}
+        <LectorVentas />
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
           <AgregarProducto />
           <RegistrarMovimiento />
         </div>
 
-        <hr />
+        <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #ddd' }} />
 
-        <ListaProductos />
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '30px' }}>
+          <h3 style={{ marginTop: 0 }}>📦 Inventario Actual</h3>
+          <ListaProductos />
+        </div>
         
-        {/* 2. AQUÍ AGREGAS EL COMPONENTE PARA VER LOS REGISTROS */}
-        <HistorialMovimientos /> 
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px' }}>
+          <h3 style={{ marginTop: 0 }}>📜 Historial de Movimientos</h3>
+          <HistorialMovimientos /> 
+        </div>
       </main>
     </div>
   );
