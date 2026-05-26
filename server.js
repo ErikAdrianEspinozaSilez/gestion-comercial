@@ -24,7 +24,8 @@ const pool = new Pool({
   max: 20,
   options: '-c search_path=gestion_comercial,public',
 });
-
+const authRouter = require('./routes/auth'); // Asegúrate de que apunte a donde guardaste auth.js
+const usuariosRouter = require('./routes/usuarios');
 app.use(cors());
 app.use(express.json());
 
@@ -35,12 +36,14 @@ app.use((req, res, next) => {
 });
 
 // 3. Rutas
+app.use('/usuarios', usuariosRouter);
 app.use('/productos', productosRouter);
 app.use('/movimientos', movimientosRouter);
 app.use('/api/proveedores', proveedoresRouter); // <-- CORREGIDO: prefijo /api/proveedores
 app.use('/api/comunicaciones', comunicacionesRouter);
-
+app.use('/auth', authRouter); // <--- ESTO FALTA
 app.get('/', (req, res) => {
+
   res.send('¡Backend Super Valle - 100% Optimizado! 🚀');
 });
 

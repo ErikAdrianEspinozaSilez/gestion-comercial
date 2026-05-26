@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
         p.nombre_producto, 
         m.cantidad, 
         t.nombre_tipo,
-        d.fecha_completa -- Aquí está tu columna real de fecha
+        d.fecha_completa
       FROM fact_movimiento_inventario m
       JOIN dim_producto p ON m.producto_id = p.producto_id
       JOIN dim_tipo_movimiento t ON m.tipo_movimiento_id = t.tipo_movimiento_id
@@ -24,50 +24,143 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. Registrar movimiento (POST) - Simplificado para que NO falle
+// 2. Registrar movimiento o Traspaso (POST)
 router.post('/', async (req, res) => {
   const { producto_id, tipo_movimiento, cantidad } = req.body; 
 
   try {
-    // 1. Buscamos el ID usando los nombres reales: 'ingreso_compra' o 'salida_venta'
-    const tipoRes = await req.dbClient.query(
-      'SELECT tipo_movimiento_id FROM dim_tipo_movimiento WHERE nombre_tipo = $1',
-      [tipo_movimiento]
-    );
+    // Iniciamos una transacción segura
+    await req.dbClient.query('BEGIN');
 
-    if (tipoRes.rowCount === 0) {
-      return res.status(400).json({ error: `El tipo '${tipo_movimiento}' no existe en la BD.` });
+    // =========================================================
+    // CASO A: ES UN TRASPASO DE BODEGA A ESTANTE
+    // =========================================================
+    if (tipo_movimiento === 'traspaso_estante') {
+      
+      // 1. Buscamos los IDs reales para Entrada y Salida
+      const idSalidaRes = await req.dbClient.query("SELECT tipo_movimiento_id FROM dim_tipo_movimiento WHERE nombre_tipo = 'salida_venta'");
+      const idEntradaRes = await req.dbClient.query("SELECT tipo_movimiento_id FROM dim_tipo_movimiento WHERE nombre_tipo = 'ingreso_compra'");
+      
+      const idSalida = idSalidaRes.rows[0].tipo_movimiento_id;
+      const idEntrada = idEntradaRes.rows[0].tipo_movimiento_id;
+
+      const insertQuery = `
+        INSERT INTO fact_movimiento_inventario (
+          tiempo_id, producto_id, ubicacion_id, proveedor_id, usuario_id, tipo_movimiento_id, cantidad
+        ) VALUES (
+          (SELECT tiempo_id FROM dim_tiempo LIMIT 1), $1, $2, 
+          (SELECT proveedor_id FROM dim_proveedor LIMIT 1), 
+          (SELECT usuario_id FROM dim_usuario LIMIT 1), $3, $4
+        )`;
+
+      // Asiento 1: RESTAR de la Bodega (ubicación_id = 1)
+      await req.dbClient.query(insertQuery, [producto_id, 1, idSalida, cantidad]);
+      
+      // Asiento 2: SUMAR al Estante (ubicación_id = 2)
+      await req.dbClient.query(insertQuery, [producto_id, 2, idEntrada, cantidad]);
+
+    } 
+    // =========================================================
+    // CASO B: ES UNA COMPRA O UN AJUSTE NORMAL
+    // =========================================================
+    else {
+      const tipoRes = await req.dbClient.query(
+        'SELECT tipo_movimiento_id FROM dim_tipo_movimiento WHERE nombre_tipo = $1',
+        [tipo_movimiento]
+      );
+
+      if (tipoRes.rowCount === 0) {
+        throw new Error(`El tipo '${tipo_movimiento}' no existe en la BD.`);
+      }
+
+      const tipoId = tipoRes.rows[0].tipo_movimiento_id;
+      
+      // Las compras nuevas entran por defecto a Bodega (1)
+      const ubicacionId = 1; 
+
+      const queryNormal = `
+        INSERT INTO fact_movimiento_inventario (
+          tiempo_id, producto_id, ubicacion_id, proveedor_id, usuario_id, tipo_movimiento_id, cantidad
+        ) VALUES (
+          (SELECT tiempo_id FROM dim_tiempo LIMIT 1), $1, $2, 
+          (SELECT proveedor_id FROM dim_proveedor LIMIT 1), 
+          (SELECT usuario_id FROM dim_usuario LIMIT 1), $3, $4
+        )`;
+      
+      await req.dbClient.query(queryNormal, [producto_id, ubicacionId, tipoId, cantidad]);
     }
 
-    const tipoId = tipoRes.rows[0].tipo_movimiento_id;
-
-    // 2. Insertamos en la tabla de hechos
-    const query = `
-      INSERT INTO fact_movimiento_inventario (
-        tiempo_id, 
-        producto_id, 
-        ubicacion_id, 
-        proveedor_id, 
-        usuario_id, 
-        tipo_movimiento_id, 
-        cantidad
-      ) VALUES (
-        (SELECT tiempo_id FROM dim_tiempo LIMIT 1), 
-        $1, 
-        (SELECT ubicacion_id FROM dim_ubicacion LIMIT 1), 
-        (SELECT proveedor_id FROM dim_proveedor LIMIT 1), 
-        (SELECT usuario_id FROM dim_usuario LIMIT 1), 
-        $2, 
-        $3
-      ) RETURNING *`;
+    // Si todo salió bien, guardamos los cambios
+    await req.dbClient.query('COMMIT');
     
-    const result = await req.dbClient.query(query, [producto_id, tipoId, cantidad]);
-    
-    console.log("✅ Movimiento registrado con éxito en Super Valle");
-    res.status(201).json(result.rows[0]);
+    console.log(`✅ Operación '${tipo_movimiento}' completada con éxito`);
+    res.status(201).json({ message: "Movimiento registrado correctamente" });
 
   } catch (err) {
-    console.error("❌ ERROR EN TRIGGER:", err.message);
+    // Si algo falla, deshacemos todo para no romper el inventario
+    await req.dbClient.query('ROLLBACK');
+    console.error("❌ ERROR AL REGISTRAR MOVIMIENTO:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+// routes/movimientos.js - Añade esta ruta al archivo
+
+router.get('/reporte-pdf', async (req, res) => {
+  // Recibimos el tipo de filtro y los valores seleccionados por el cliente
+  const { filtro, mesAnio, inicio, fin } = req.query;
+  
+  let fechaInicio = '';
+  let fechaFin = '';
+  const hoy = new Date().toISOString().split('T')[0]; // Fecha de hoy en formato 'YYYY-MM-DD'
+
+  // LÓGICA DE DETECCIÓN DE RANGOS ABSOLUTOS
+  if (filtro === 'dia') {
+    fechaInicio = hoy;
+    fechaFin = hoy;
+  } else if (filtro === 'semana') {
+    const hace7Dias = new Date();
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    fechaInicio = hace7Dias.toISOString().split('T')[0];
+    fechaFin = hoy;
+  } else if (filtro === 'mes_especifico' && mesAnio) {
+    // Si el Admin elige un mes (ej: "2026-03")
+    fechaInicio = `${mesAnio}-01`; // Primer día del mes
+    
+    const [anio, mes] = mesAnio.split('-');
+    // Truco JS: El día '0' del mes siguiente nos da el último día del mes actual
+    const ultimoDia = new Date(Number(anio), Number(mes), 0).getDate();
+    fechaFin = `${mesAnio}-${ultimoDia}`; // Último día del mes
+  } else if (filtro === 'rango_personalizado' && inicio && fin) {
+    // Si elige días específicos o un rango manual
+    fechaInicio = inicio;
+    fechaFin = fin;
+  } else {
+    // Filtro por defecto (hoy)
+    fechaInicio = hoy;
+    fechaFin = hoy;
+  }
+
+  try {
+    // Tu consulta ahora es limpia, escalable y usa la columna real: t.fecha_completa
+    const query = `
+      SELECT 
+        m.movimiento_id,
+        p.nombre_producto,
+        p.precio,
+        m.cantidad,
+        m.tipo_movimiento_id,
+        TO_CHAR(t.fecha_completa, 'DD/MM/YYYY') as fecha_formateada
+      FROM gestion_comercial.fact_movimiento_inventario m
+      JOIN gestion_comercial.dim_producto p ON m.producto_id = p.producto_id
+      JOIN gestion_comercial.dim_tiempo t ON m.tiempo_id = t.tiempo_id
+      WHERE t.fecha_completa BETWEEN $1 AND $2
+      ORDER BY m.movimiento_id DESC
+    `;
+    
+    const result = await req.dbClient.query(query, [fechaInicio, fechaFin]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error al generar datos del reporte:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

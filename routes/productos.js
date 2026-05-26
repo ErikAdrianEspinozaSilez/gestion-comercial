@@ -13,8 +13,15 @@ router.get('/buscar/:id', async (req, res) => {
       AND activo = TRUE`;
     
     const result = await req.dbClient.query(query, [busqueda]);
-    if (result.rows.length > 0) res.json(result.rows[0]);
-    else res.status(404).json({ message: "No registrado o inactivo" });
+    
+    if (result.rows.length > 0) {
+      const producto = result.rows[0];
+      // Convertimos precio a número seguro
+      producto.precio = Number(producto.precio) || 0;
+      res.json(producto);
+    } else {
+      res.status(404).json({ message: "No registrado o inactivo" });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,7 +46,7 @@ router.get('/stats', async (req, res) => {
     `);
 
     const ventasHoyRes = await req.dbClient.query(`
-      SELECT SUM(costo_unitario) as total 
+      SELECT SUM(precio) as total 
       FROM gestion_comercial.fact_movimiento_inventario 
       WHERE tipo_movimiento_id = 2 AND DATE(fecha_registro) = CURRENT_DATE
     `);
@@ -77,19 +84,29 @@ router.get('/stock-bajo', async (req, res) => {
   }
 });
 
-// 4. CONSULTA DE TODOS LOS PRODUCTOS (Para la tabla de inventario)
+// 4. CONSULTA DE TODOS LOS PRODUCTOS (Para la tabla de inventario con Ubicaciones)
 router.get('/', async (req, res) => {
   try {
     const query = `
       SELECT p.*, 
-             (COALESCE(SUM(CASE WHEN t.signo = 1 THEN m.cantidad ELSE 0 END), 0) - 
-              COALESCE(SUM(CASE WHEN t.signo = -1 THEN m.cantidad ELSE 0 END), 0)) AS stock_total
+        -- 1. STOCK EN BODEGA (ubicacion_id = 1)
+        (COALESCE(SUM(CASE WHEN t.signo = 1 AND m.ubicacion_id = 1 THEN m.cantidad ELSE 0 END), 0) - 
+         COALESCE(SUM(CASE WHEN t.signo = -1 AND m.ubicacion_id = 1 THEN m.cantidad ELSE 0 END), 0)) AS stock_bodega,
+         
+        -- 2. STOCK EN ESTANTE (ubicacion_id = 2)
+        (COALESCE(SUM(CASE WHEN t.signo = 1 AND m.ubicacion_id = 2 THEN m.cantidad ELSE 0 END), 0) - 
+         COALESCE(SUM(CASE WHEN t.signo = -1 AND m.ubicacion_id = 2 THEN m.cantidad ELSE 0 END), 0)) AS stock_estante,
+         
+        -- 3. STOCK TOTAL GLOBAl
+        (COALESCE(SUM(CASE WHEN t.signo = 1 THEN m.cantidad ELSE 0 END), 0) - 
+         COALESCE(SUM(CASE WHEN t.signo = -1 THEN m.cantidad ELSE 0 END), 0)) AS stock_total
       FROM gestion_comercial.dim_producto p
       LEFT JOIN gestion_comercial.fact_movimiento_inventario m ON p.producto_id = m.producto_id
       LEFT JOIN gestion_comercial.dim_tipo_movimiento t ON m.tipo_movimiento_id = t.tipo_movimiento_id
       WHERE p.activo = TRUE
       GROUP BY p.producto_id
       ORDER BY p.producto_id DESC`;
+      
     const result = await req.dbClient.query(query);
     res.json(result.rows);
   } catch (err) {
@@ -106,14 +123,12 @@ router.post('/', async (req, res) => {
       INSERT INTO gestion_comercial.dim_producto 
       (codigo_barra, nombre_producto, precio, imagen_url, subcategoria_id, marca_id, unidad_medida_id, activo) 
       VALUES ($1, $2, $3, $4, 1, 1, 1, TRUE) RETURNING *`;
-    const result = await req.dbClient.query(query, [codigoFinal, nombre_producto, precio || 0, imagen_url]);
+    const result = await req.dbClient.query(query, [codigoFinal, nombre_producto, Number(precio) || 0, imagen_url]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 // 6. EDITAR PRODUCTO (Actualización con control de errores)
 router.put('/:id', async (req, res) => {
@@ -121,8 +136,7 @@ router.put('/:id', async (req, res) => {
   const { nombre_producto, precio, codigo_barra, imagen_url } = req.body;
   
   try {
-    // 1. Validamos que el precio no venga vacío desde el frontend
-    const precioFinal = (precio === '' || precio === null || precio === undefined) ? 0 : precio;
+    const precioFinal = Number(precio) || 0;
 
     const query = `
       UPDATE gestion_comercial.dim_producto 
@@ -132,14 +146,12 @@ router.put('/:id', async (req, res) => {
       
     const result = await req.dbClient.query(query, [nombre_producto, precioFinal, codigo_barra, imagen_url, id]);
     
-    // 2. Verificamos si realmente se editó algo
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "No se encontró el producto para editar" });
     }
 
     res.json({ message: "Producto actualizado correctamente" });
   } catch (err) {
-    // 3. ESTO ES LO MÁS IMPORTANTE: Imprimirá el error real en tu terminal negra
     console.error("❌ ERROR SQL AL EDITAR:", err.message);
     res.status(500).json({ error: err.message });
   }
@@ -149,7 +161,6 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    // Apagamos el producto para que no salga en la tabla, pero su historial de ventas se guarda
     await req.dbClient.query('UPDATE gestion_comercial.dim_producto SET activo = FALSE WHERE producto_id = $1', [id]);
     res.json({ message: "Producto desactivado correctamente" });
   } catch (err) {
@@ -174,34 +185,123 @@ router.get('/historial', async (req, res) => {
   }
 });
 
-// 9. FINALIZAR VENTA
+// 9. FINALIZAR VENTA (Corregido y Blindado)
 router.post('/finalizar-venta', async (req, res) => {
   const { productos } = req.body;
   try {
     await req.dbClient.query('BEGIN');
+    
+    // 1. Obtener o crear el tiempo de hoy
     let tiempoId;
-    const checkTiempo = await req.dbClient.query("SELECT tiempo_id FROM gestion_comercial.dim_tiempo WHERE fecha_completa = CURRENT_DATE LIMIT 1");
+    const checkTiempo = await req.dbClient.query("SELECT tiempo_id FROM dim_tiempo WHERE fecha_completa = CURRENT_DATE LIMIT 1");
     if (checkTiempo.rows.length > 0) {
       tiempoId = checkTiempo.rows[0].tiempo_id;
     } else {
       const insertTiempo = await req.dbClient.query(
-        `INSERT INTO gestion_comercial.dim_tiempo (fecha_completa, dia, mes_id) 
+        `INSERT INTO dim_tiempo (fecha_completa, dia, mes_id) 
          VALUES (CURRENT_DATE, EXTRACT(DAY FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE)) RETURNING tiempo_id`
       );
       tiempoId = insertTiempo.rows[0].tiempo_id;
     }
 
+    // 2. LA CORRECCIÓN: Buscar el ID REAL de 'salida_venta' dinámicamente
+    const idSalidaRes = await req.dbClient.query("SELECT tipo_movimiento_id FROM dim_tipo_movimiento WHERE nombre_tipo = 'salida_venta'");
+    const idSalida = idSalidaRes.rows[0].tipo_movimiento_id;
+
+    // 3. Insertar cada producto vendido DESCONTANDO DEL ESTANTE (ubicacion_id = 2)
     for (const item of productos) {
       const insertMovimiento = `
-        INSERT INTO gestion_comercial.fact_movimiento_inventario 
-        (producto_id, tipo_movimiento_id, cantidad, fecha_registro, costo_unitario, ubicacion_id, tiempo_id, usuario_id)
-        VALUES ($1, 2, 1, CURRENT_TIMESTAMP, $2, 1, $3, 1)`;
-      await req.dbClient.query(insertMovimiento, [item.producto_id, item.precio || item.precio_unitario || 0, tiempoId]);
+        INSERT INTO fact_movimiento_inventario 
+        (producto_id, tipo_movimiento_id, cantidad, fecha_registro, costo_unitario, ubicacion_id, tiempo_id, usuario_id, proveedor_id)
+        VALUES ($1, $2, 1, CURRENT_TIMESTAMP, $3, 2, $4, 
+          (SELECT usuario_id FROM dim_usuario LIMIT 1),
+          (SELECT proveedor_id FROM dim_proveedor LIMIT 1)
+        )`; 
+        
+      const precioItem = item.precio || item.precio_unitario || 0;
+      await req.dbClient.query(insertMovimiento, [item.producto_id, idSalida, precioItem, tiempoId]);
     }
+    
     await req.dbClient.query('COMMIT');
     res.json({ message: "¡Venta completada!" });
   } catch (err) {
     await req.dbClient.query('ROLLBACK');
+    console.error("Error al finalizar venta:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// 10. DASHBOARD DE VENTAS Y PRODUCTO ESTRELLA
+router.get('/dashboard-ventas', async (req, res) => {
+  try {
+    const ventasHoyRes = await req.dbClient.query(`
+      SELECT COALESCE(SUM(precio * cantidad), 0) as total 
+      FROM gestion_comercial.fact_movimiento_inventario 
+      WHERE tipo_movimiento_id = 2 AND DATE(fecha_registro) = CURRENT_DATE
+    `);
+
+    const ventasSemanaRes = await req.dbClient.query(`
+      SELECT COALESCE(SUM(precio * cantidad), 0) as total 
+      FROM gestion_comercial.fact_movimiento_inventario 
+      WHERE tipo_movimiento_id = 2 
+      AND date_trunc('week', fecha_registro) = date_trunc('week', CURRENT_DATE)
+    `);
+
+    const ventasMesRes = await req.dbClient.query(`
+      SELECT COALESCE(SUM(precio * cantidad), 0) as total 
+      FROM gestion_comercial.fact_movimiento_inventario 
+      WHERE tipo_movimiento_id = 2 
+      AND date_trunc('month', fecha_registro) = date_trunc('month', CURRENT_DATE)
+    `);
+
+    const productoEstrellaRes = await req.dbClient.query(`
+      SELECT p.nombre_producto, p.imagen_url, SUM(m.cantidad) as total_vendido
+      FROM gestion_comercial.fact_movimiento_inventario m
+      JOIN gestion_comercial.dim_producto p ON m.producto_id = p.producto_id
+      WHERE m.tipo_movimiento_id = 2
+      GROUP BY p.producto_id, p.nombre_producto, p.imagen_url
+      ORDER BY total_vendido DESC
+      LIMIT 1
+    `);
+
+    res.json({
+      ventas_hoy: parseFloat(ventasHoyRes.rows[0].total).toFixed(2),
+      ventas_semana: parseFloat(ventasSemanaRes.rows[0].total).toFixed(2),
+      ventas_mes: parseFloat(ventasMesRes.rows[0].total).toFixed(2),
+      producto_estrella: productoEstrellaRes.rows.length > 0 ? productoEstrellaRes.rows[0] : null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11. HISTORIAL DETALLADO CON FILTROS DE TIEMPO
+router.get('/historial-detallado', async (req, res) => {
+  const { periodo } = req.query; // Puede ser 'hoy', 'semana', 'mes' o null
+  try {
+    let filtroFecha = "";
+
+    if (periodo === 'hoy') {
+      filtroFecha = "AND DATE(m.fecha_registro) = CURRENT_DATE";
+    } else if (periodo === 'semana') {
+      filtroFecha = "AND date_trunc('week', m.fecha_registro) = date_trunc('week', CURRENT_DATE)";
+    } else if (periodo === 'mes') {
+      filtroFecha = "AND date_trunc('month', m.fecha_registro) = date_trunc('month', CURRENT_DATE)";
+    }
+
+    const query = `
+      SELECT m.movimiento_id, p.nombre_producto, t.nombre_tipo, m.cantidad, 
+             m.precio as precio_venta,
+             (m.cantidad * m.precio) as subtotal,
+             TO_CHAR(m.fecha_registro, 'DD/MM/YYYY HH24:MI') as fecha_formateada
+      FROM gestion_comercial.fact_movimiento_inventario m
+      JOIN gestion_comercial.dim_producto p ON m.producto_id = p.producto_id
+      JOIN gestion_comercial.dim_tipo_movimiento t ON m.tipo_movimiento_id = t.tipo_movimiento_id
+      WHERE 1=1 ${filtroFecha}
+      ORDER BY m.fecha_registro DESC`;
+
+    const result = await req.dbClient.query(query);
+    res.json(result.rows);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

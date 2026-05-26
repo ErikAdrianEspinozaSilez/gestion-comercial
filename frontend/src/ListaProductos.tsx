@@ -2,19 +2,24 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import ModalComunicacion from './ModalComunicacion';
+import { useAuth } from './AuthContext';
 
 const ListaProductos: React.FC = () => {
+  const { user } = useAuth(); 
   const queryClient = useQueryClient();
   const [isComuModalOpen, setIsComuModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados para la edición dentro del modal
   const [editData, setEditData] = useState({
     nombre_producto: '',
     precio: '',
     codigo_barra: '',
-    imagen_url: ''
+    imagen_url: '',
+    stock_bodega: '',
+    stock_estante: ''
   });
 
   const { data: productos, isLoading } = useQuery({
@@ -26,7 +31,6 @@ const ListaProductos: React.FC = () => {
     refetchInterval: 2000
   });
 
-  // MUTACIÓN: Eliminar Producto
   const deleteMutation = useMutation({
     mutationFn: (id: number) => axios.delete(`http://localhost:3000/productos/${id}`),
     onSuccess: () => {
@@ -37,7 +41,6 @@ const ListaProductos: React.FC = () => {
     onError: (err: any) => alert("❌ Error al eliminar: " + err.message)
   });
 
-  // MUTACIÓN: Guardar Cambios (Edición)
   const updateMutation = useMutation({
     mutationFn: (data: any) => axios.put(`http://localhost:3000/productos/${selectedProduct.producto_id}`, data),
     onSuccess: () => {
@@ -52,53 +55,110 @@ const ListaProductos: React.FC = () => {
     setSelectedProduct(p);
     setEditData({
       nombre_producto: p.nombre_producto,
-      precio: p.precio || p.precio_unitario || '',
+      precio: p.precio || '',
       codigo_barra: p.codigo_barra || '',
-      imagen_url: p.imagen_url || ''
+      imagen_url: p.imagen_url || '',
+      stock_bodega: p.stock_bodega || 0,
+      stock_estante: p.stock_estante || 0
     });
     setIsDetailModalOpen(true);
   };
 
+  const productosFiltrados = productos?.filter((p: any) => {
+    const termino = searchTerm.toLowerCase();
+    const coincideNombre = p.nombre_producto?.toLowerCase().includes(termino);
+    const coincideCodigo = p.codigo_barra?.toLowerCase().includes(termino);
+    return coincideNombre || coincideCodigo;
+  });
+
   if (isLoading) return <p>Cargando inventario...</p>;
+
+  const rol = Number(user.rol_id);
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-      <h3>📦 Inventario de Productos</h3>
+      
+      {/* TÍTULO SOLICITADO */}
+      <h2 
+        style={{ 
+          margin: '0 0 20px 0', 
+          color: '#1e293b', 
+          fontSize: '24px', 
+          fontWeight: 'bold', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '10px',
+          width: '100%',
+          textAlign: 'center'
+        }}
+      >
+        📦 Inventario General
+      </h2>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-            <th style={{ padding: '10px' }}>Imagen</th>
-            <th style={{ padding: '10px' }}>Código</th>
-            <th style={{ padding: '10px' }}>Producto</th>
-            <th style={{ padding: '10px' }}>Precio (Bs.)</th>
-            <th style={{ padding: '10px' }}>Stock</th>
-            <th style={{ padding: '10px' }}>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {productos?.map((p: any) => (
-            <tr key={p.producto_id} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '10px' }}>
-                <img src={p.imagen_url || 'https://via.placeholder.com/150'} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
-              </td>
-              <td style={{ padding: '10px', fontSize: '13px', color: '#64748b' }}>{p.codigo_barra}</td>
-              <td style={{ padding: '10px', fontWeight: 'bold' }}>{p.nombre_producto}</td>
-              <td style={{ padding: '10px' }}>{p.precio || p.precio_unitario}</td>
-              <td style={{ padding: '10px', color: p.stock_total < 5 ? 'red' : 'green', fontWeight: 'bold' }}>
-                {p.stock_total}
-              </td>
-              <td style={{ padding: '10px' }}>
-                <button onClick={() => openDetails(p)} style={{ padding: '5px 10px', cursor: 'pointer', borderRadius: '5px', backgroundColor: '#6366f1', color: 'white', border: 'none' }}>
-                  👁️ Ver producto
-                </button>
-              </td>
+      {/* BARRA DE BÚSQUEDA ORIGINAL */}
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          placeholder="🔍 Buscar por nombre o código de barras..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '15px', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {/* TABLA ENVUELTA EN DIV CON SCROLL HORIZONTAL */}
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+          <thead>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
+              <th style={{ padding: '10px' }}>Imagen</th>
+              <th style={{ padding: '10px' }}>Código</th>
+              <th style={{ padding: '10px' }}>Producto</th>
+              <th style={{ padding: '10px' }}>Precio (Bs.)</th>
+              <th style={{ padding: '10px', color: '#475569' }}>📦 Bodega</th>
+              <th style={{ padding: '10px', color: '#2563eb' }}>🛒 Estante</th>
+              <th style={{ padding: '10px' }}>Stock Total</th>
+              <th style={{ padding: '10px' }}>Acción</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {productosFiltrados?.map((p: any) => (
+              <tr key={p.producto_id} style={{ borderBottom: '1px solid #eee' }}>
+<td style={{ padding: '10px' }}>
+  {p.imagen_url && !p.imagen_url.includes('via.placeholder.com') ? (
+    <img 
+      src={p.imagen_url} 
+      alt="Producto" 
+      style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} 
+      onError={(e) => {
+        // Si CUALQUIER imagen falla en cargar por internet, la ocultamos para que no salga error roto
+        (e.target as HTMLImageElement).style.display = 'none';
+      }}
+    />
+  ) : (
+    <div style={{ width: '40px', height: '40px', borderRadius: '6px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }} title="Sin imagen">
+      📦
+    </div>
+  )}
+</td>                <td style={{ padding: '10px', fontSize: '13px', color: '#64748b' }}>{p.codigo_barra}</td>
+                <td style={{ padding: '10px', fontWeight: 'bold' }}>{p.nombre_producto}</td>
+                <td style={{ padding: '10px' }}>{p.precio}</td>
+                <td style={{ padding: '10px', color: '#64748b', fontWeight: '500' }}>{p.stock_bodega || 0}</td>
+                <td style={{ padding: '10px', color: '#2563eb', fontWeight: 'bold' }}>{p.stock_estante || 0}</td>
+                <td style={{ padding: '10px', color: p.stock_total < 5 ? '#ef4444' : '#10b981', fontWeight: 'bold' }}>{p.stock_total || 0}</td>
+                <td style={{ padding: '10px' }}>
+                  <button onClick={() => openDetails(p)} style={{ padding: '5px 10px', cursor: 'pointer', borderRadius: '5px', backgroundColor: '#6366f1', color: 'white', border: 'none' }}>
+                    👁️ Gestionar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* --- PESTAÑA / MODAL DE DETALLES Y EDICIÓN --- */}
+      {/* MODAL ORIGINAL CON TODOS TUS CAMPOS Y ETIQUETAS */}
       {isDetailModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '15px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
@@ -114,22 +174,35 @@ const ListaProductos: React.FC = () => {
               <label style={{ fontSize: '12px', color: '#666' }}>Código de Barras</label>
               <input type="text" value={editData.codigo_barra} onChange={(e) => setEditData({...editData, codigo_barra: e.target.value})} style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }} />
               
+              <label style={{ fontSize: '12px', color: '#666' }}>Stock en Bodega</label>
+              <input type="number" value={editData.stock_bodega} onChange={(e) => setEditData({...editData, stock_bodega: e.target.value})} style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }} />
+              
+              <label style={{ fontSize: '12px', color: '#666' }}>Stock en Estante</label>
+              <input type="number" value={editData.stock_estante} onChange={(e) => setEditData({...editData, stock_estante: e.target.value})} style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }} />
+
               <label style={{ fontSize: '12px', color: '#666' }}>URL Imagen</label>
               <input type="text" value={editData.imagen_url} onChange={(e) => setEditData({...editData, imagen_url: e.target.value})} style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ddd' }} />
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button onClick={() => updateMutation.mutate(editData)} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-                💾 Guardar
-              </button>
+              
+              {/* SEGURIDAD: Solo Admin(1) y Encargado(2) */}
+              {(rol === 1 || rol === 2) && (
+                <button onClick={() => updateMutation.mutate(editData)} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  💾 Guardar
+                </button>
+              )}
               
               <button onClick={() => setIsComuModalOpen(true)} style={{ flex: 1, padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
                 📧 Pedir más
               </button>
 
-              <button onClick={() => { if(confirm("¿Seguro que quieres eliminar este producto?")) deleteMutation.mutate(selectedProduct.producto_id) }} style={{ width: '100%', padding: '10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '5px' }}>
-                🗑️ Eliminar Producto
-              </button>
+              {/* SEGURIDAD: Solo Admin(1) */}
+              {rol === 1 && (
+                <button onClick={() => { if(confirm("¿Seguro que quieres eliminar este producto?")) deleteMutation.mutate(selectedProduct.producto_id) }} style={{ width: '100%', padding: '10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '5px' }}>
+                  🗑️ Eliminar Producto
+                </button>
+              )}
 
               <button onClick={() => setIsDetailModalOpen(false)} style={{ width: '100%', padding: '8px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '5px', cursor: 'pointer', color: '#64748b' }}>
                 Cerrar
@@ -139,7 +212,6 @@ const ListaProductos: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Comunicación (Nodemailer) */}
       <ModalComunicacion 
         isOpen={isComuModalOpen} 
         onClose={() => setIsComuModalOpen(false)} 
