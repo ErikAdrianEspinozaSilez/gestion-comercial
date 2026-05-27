@@ -1,25 +1,9 @@
 // backend/routes/comunicaciones.js
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
-require('dotenv').config();
 
+const pool = require('../db');
 const { enviarCorreoProveedor } = require('../controllers/comunicacionController');
-
-// Configuración del Pool
-const pool = new Pool({
-  user: process.env.PG_USER,
-  host: 'localhost',
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: 5432,
-  max: 20,
-  options: '-c search_path=gestion_comercial,public',
-});
-
-pool.connect()
-  .then(() => console.log('✅ Conexión con comunicaciones OK - esquema gestion_comercial'))
-  .catch(err => console.error('❌ Error de conexión en comunicaciones.js:', err.message));
 
 /**
  * 1️⃣ POST: Enviar correo al proveedor
@@ -39,7 +23,9 @@ router.get('/historial', async (req, res) => {
       JOIN gestion_comercial.dim_proveedor p ON c.proveedor_id = p.proveedor_id
       ORDER BY c.fecha_envio DESC NULLS LAST
     `;
+
     const result = await pool.query(query);
+
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Error en historial:", error.message);
@@ -53,13 +39,16 @@ router.get('/historial', async (req, res) => {
  */
 router.get('/confirmar/:id', async (req, res) => {
   const { id } = req.params;
+
   try {
     const updateQuery = `
       UPDATE gestion_comercial.comunicacion_proveedor 
       SET estado_envio = 'respondido', fecha_respuesta = CURRENT_TIMESTAMP 
       WHERE comunicacion_proveedor_id = $1
     `;
+
     await pool.query(updateQuery, [id]);
+
     res.send(`
       <div style="font-family: Arial; text-align: center; padding: 50px;">
         <h1 style="color: green;">✅ Pedido Confirmado</h1>
