@@ -16,13 +16,13 @@ const GestionUsuarios: React.FC = () => {
   const { data: usuarios, isLoading } = useQuery({
     queryKey: ['usuarios'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:3000/usuarios');
+      const res = await axios.get('https://gestion-comercial-j3ed.onrender.com/usuarios');
       return res.data;
     }
   });
 
   const createMutation = useMutation({
-    mutationFn: (nuevoUsuario: any) => axios.post('http://localhost:3000/usuarios', nuevoUsuario),
+    mutationFn: (nuevoUsuario: any) => axios.post('https://gestion-comercial-j3ed.onrender.com/usuarios', nuevoUsuario),
     onSuccess: () => {
       alert("✅ Usuario registrado exitosamente");
       setFormData({ nombre_completo: '', usuario_login: '', correo: '', password: '', rol_id: 3 });
@@ -32,7 +32,7 @@ const GestionUsuarios: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:3000/usuarios/${id}`),
+    mutationFn: (id: number) => axios.delete(`https://gestion-comercial-j3ed.onrender.com/usuarios/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
     }

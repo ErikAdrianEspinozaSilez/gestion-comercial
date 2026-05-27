@@ -61,7 +61,7 @@ const HistorialMovimientos: React.FC = () => {
   const { data: stats } = useQuery({
     queryKey: ['dashboard-ventas'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:3000/productos/dashboard-ventas');
+      const res = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos/dashboard-ventas');
       return res.data;
     },
     refetchInterval: 5000
@@ -75,7 +75,7 @@ const HistorialMovimientos: React.FC = () => {
     queryKey: ['historial-filtrado', filtroPeriodo],
     queryFn: async () => {
       const res = await axios.get(
-        `http://localhost:3000/productos/historial-detallado?periodo=${filtroPeriodo}`
+        `https://gestion-comercial-j3ed.onrender.com/productos/historial-detallado?periodo=${filtroPeriodo}`
       );
       return res.data;
     },
@@ -90,7 +90,7 @@ const HistorialMovimientos: React.FC = () => {
 
     try {
 
-      let url = `http://localhost:3000/movimientos/reporte-pdf?filtro=${tipoFiltro}`;
+      let url = `https://gestion-comercial-j3ed.onrender.com/movimientos/reporte-pdf?filtro=${tipoFiltro}`;
 
       if (tipoFiltro === 'mes_especifico') {
         url += `&mesAnio=${mesSeleccionado}`;

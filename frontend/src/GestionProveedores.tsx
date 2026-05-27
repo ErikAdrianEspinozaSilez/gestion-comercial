@@ -23,7 +23,7 @@ const GestionProveedores: React.FC = () => {
   const { data: listaProductos } = useQuery({
     queryKey: ['productos'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/productos');
+      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos');
       return response.data;
     }
   });
@@ -32,7 +32,7 @@ const GestionProveedores: React.FC = () => {
   const { data: proveedores, isLoading } = useQuery({
     queryKey: ['proveedores'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/api/proveedores');
+      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/api/proveedores');
       return response.data;
     }
   });
@@ -41,9 +41,9 @@ const GestionProveedores: React.FC = () => {
   const mutation = useMutation({
     mutationFn: (data: any) => {
       if (isEditing && currentId) {
-        return axios.put(`http://localhost:3000/api/proveedores/${currentId}`, data);
+        return axios.put(`https://gestion-comercial-j3ed.onrender.com/api/proveedores/${currentId}`, data);
       }
-      return axios.post('http://localhost:3000/api/proveedores', data);
+      return axios.post('https://gestion-comercial-j3ed.onrender.com/api/proveedores', data);
     },
     onSuccess: () => {
       alert(isEditing ? "✅ Proveedor actualizado" : "✅ Proveedor registrado");

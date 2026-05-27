@@ -6,7 +6,7 @@ const HistorialComunicaciones: React.FC = () => {
   const { data: historial, isLoading } = useQuery({
     queryKey: ['historial-correos'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/api/comunicaciones/historial');
+      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/historial');
       return response.data;
     },
     refetchInterval: 5000 // Se actualiza cada 5 seg por si alguien confirma

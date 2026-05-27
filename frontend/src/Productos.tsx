@@ -12,7 +12,7 @@ interface Producto {
 
 // Función para obtener los productos del backend
 const fetchProductos = async (): Promise<Producto[]> => {
-  const response = await fetch('http://localhost:3000/productos');
+  const response = await fetch('https://gestion-comercial-j3ed.onrender.com/productos');
   
   // Manejo de errores
   if (!response.ok) {

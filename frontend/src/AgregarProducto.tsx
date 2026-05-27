@@ -14,7 +14,7 @@ const AgregarProducto: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: async (nuevoProducto: typeof formData) => {
-      return await axios.post('http://localhost:3000/productos', nuevoProducto);
+      return await axios.post('https://gestion-comercial-j3ed.onrender.com/productos', nuevoProducto);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['productos'] });

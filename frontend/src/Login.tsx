@@ -9,9 +9,9 @@ const Login: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Intentando enviar login a:", 'http://localhost:3000/auth/login'); 
+    console.log("Intentando enviar login a:", 'https://gestion-comercial-j3ed.onrender.com/auth/login'); 
     try {
-      const res = await axios.post('http://localhost:3000/auth/login', { 
+      const res = await axios.post('https://gestion-comercial-j3ed.onrender.com/auth/login', { 
           username: username, 
           password: password 
       });

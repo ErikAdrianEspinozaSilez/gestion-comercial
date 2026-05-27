@@ -10,11 +10,11 @@ const RegistrarMovimiento: React.FC = () => {
 
   const { data: productos } = useQuery({
     queryKey: ['productos'],
-    queryFn: async () => (await axios.get('http://localhost:3000/productos')).data,
+    queryFn: async () => (await axios.get('https://gestion-comercial-j3ed.onrender.com/productos')).data,
   });
 
   const mutation = useMutation({
-    mutationFn: (nuevoMov: any) => axios.post('http://localhost:3000/movimientos', nuevoMov),
+    mutationFn: (nuevoMov: any) => axios.post('https://gestion-comercial-j3ed.onrender.com/movimientos', nuevoMov),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['productos'] });
       await queryClient.invalidateQueries({ queryKey: ['movimientos'] });

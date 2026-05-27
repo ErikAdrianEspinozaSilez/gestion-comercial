@@ -13,7 +13,7 @@ const AlertasInventario: React.FC = () => {
     queryKey: ['stock-bajo'],
     queryFn: async () => {
       const res = await axios.get(
-        `http://localhost:3000/productos/stock-bajo?t=${Date.now()}`
+        `https://gestion-comercial-j3ed.onrender.com/productos/stock-bajo?t=${Date.now()}`
       );
       return res.data;
     },
@@ -25,7 +25,7 @@ const AlertasInventario: React.FC = () => {
   const mutation = useMutation({
     mutationFn: async (newEmail: any) => {
       const res = await axios.post(
-        'http://localhost:3000/api/comunicaciones/enviar-correo',
+        'https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/enviar-correo',
         newEmail
       );
       return res.data;

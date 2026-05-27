@@ -27,7 +27,7 @@ const LectorVentas: React.FC = () => {
     setCodigo('');
 
     try {
-      const res = await axios.get(`http://localhost:3000/productos/buscar/${codigoEscaneado}`);
+      const res = await axios.get(`https://gestion-comercial-j3ed.onrender.com/productos/buscar/${codigoEscaneado}`);
       if (res.data) {
         const precioLimpio = limpiarPrecio(res.data.precio || res.data.precio_unitario);
         const nuevoProducto = {
@@ -64,7 +64,7 @@ const LectorVentas: React.FC = () => {
   const finalizarVenta = async () => {
     if (carrito.length === 0) return;
     try {
-      const res = await axios.post('http://localhost:3000/productos/finalizar-venta', { productos: carrito });
+      const res = await axios.post('https://gestion-comercial-j3ed.onrender.com/productos/finalizar-venta', { productos: carrito });
       if (res.status === 200) {
         alert("✅ Venta exitosa");
         setCarrito([]);

@@ -7,7 +7,7 @@ const DashboardVentas: React.FC = () => {
   const { data: sales, isLoading: loadingSales } = useQuery({
     queryKey: ['dashboard-ventas'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:3000/productos/dashboard-ventas');
+      const res = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos/dashboard-ventas');
       return res.data;
     },
     refetchInterval: 5000
@@ -17,7 +17,7 @@ const DashboardVentas: React.FC = () => {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['stats-dashboard-unificado'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:3000/productos/stats');
+      const res = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos/stats');
       return res.data;
     },
     refetchInterval: 5000

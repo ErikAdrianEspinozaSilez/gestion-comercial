@@ -6,7 +6,7 @@ const DashboardStats: React.FC = () => {
   const { data: stats } = useQuery({
     queryKey: ['stats-dashboard'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:3000/productos/stats');
+      const res = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos/stats');
       // Convertimos los valores a número seguro
       return {
         total_items: Number(res.data.total_items || 0),

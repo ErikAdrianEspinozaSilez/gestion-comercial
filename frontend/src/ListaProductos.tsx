@@ -25,14 +25,14 @@ const ListaProductos: React.FC = () => {
   const { data: productos, isLoading } = useQuery({
     queryKey: ['productos'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:3000/productos');
+      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos');
       return response.data;
     },
     refetchInterval: 2000
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:3000/productos/${id}`),
+    mutationFn: (id: number) => axios.delete(`https://gestion-comercial-j3ed.onrender.com/productos/${id}`),
     onSuccess: () => {
       alert("🗑️ Producto eliminado");
       setIsDetailModalOpen(false);
@@ -42,7 +42,7 @@ const ListaProductos: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => axios.put(`http://localhost:3000/productos/${selectedProduct.producto_id}`, data),
+    mutationFn: (data: any) => axios.put(`https://gestion-comercial-j3ed.onrender.com/productos/${selectedProduct.producto_id}`, data),
     onSuccess: () => {
       alert("✅ Cambios guardados");
       setIsDetailModalOpen(false);
