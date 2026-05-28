@@ -30,8 +30,9 @@ const enviarCorreoProveedor = async (req, res) => {
         // 2️⃣ Obtener el ID correcto de la comunicación
         const id_real = resultadoBD.rows[0].comunicacion_proveedor_id;
 
-        // 3️⃣ Crear enlace de confirmación
-        const enlaceConfirmacion = `http://localhost:3000/api/comunicaciones/confirmar/${id_real}`;
+        // 3️⃣ Crear enlace de confirmación (APUNTANDO A LA NUBE)
+        // 🔥 ¡CAMBIA LA URL DE ABAJO POR TU URL REAL DE RENDER! 🔥
+        const enlaceConfirmacion = `https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/confirmar/${id_real}`;
 
         // 4️⃣ Preparar y enviar correo
         const mailOptions = {

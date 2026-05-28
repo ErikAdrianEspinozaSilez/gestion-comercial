@@ -278,7 +278,7 @@ router.post('/finalizar-venta', async (req, res) => {
           tipo_movimiento_id, 
           cantidad, 
           fecha_registro, 
-          costo_unitario, 
+          precio, 
           ubicacion_id, 
           tiempo_id, 
           usuario_id, 
