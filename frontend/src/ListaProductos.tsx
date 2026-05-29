@@ -51,6 +51,25 @@ const ListaProductos: React.FC = () => {
     onError: (err: any) => alert("❌ Error al editar: " + err.message)
   });
 
+  // 🔥 NUEVA MUTACIÓN: El cable real hacia la nube para los correos
+  const emailMutation = useMutation({
+    mutationFn: async (newEmail: any) => {
+      const res = await axios.post(
+        'https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/enviar-correo',
+        newEmail
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      alert('✅ Notificación enviada al proveedor con éxito.');
+      setIsComuModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error al enviar:', error);
+      alert('❌ Error al enviar. Revisa la consola.');
+    },
+  });
+
   const openDetails = (p: any) => {
     setSelectedProduct(p);
     setEditData({
@@ -62,6 +81,15 @@ const ListaProductos: React.FC = () => {
       stock_estante: p.stock_estante || 0
     });
     setIsDetailModalOpen(true);
+  };
+
+  const handleEnviarCorreo = (formData: any) => {
+    // Salvavidas: aseguramos el proveedor_id
+    const finalData = {
+      ...formData,
+      proveedor_id: formData.proveedor_id || selectedProduct?.proveedor_id || 1
+    };
+    emailMutation.mutate(finalData);
   };
 
   const productosFiltrados = productos?.filter((p: any) => {
@@ -78,7 +106,6 @@ const ListaProductos: React.FC = () => {
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
       
-      {/* TÍTULO SOLICITADO */}
       <h2 
         style={{ 
           margin: '0 0 20px 0', 
@@ -96,7 +123,6 @@ const ListaProductos: React.FC = () => {
         📦 Inventario General
       </h2>
 
-      {/* BARRA DE BÚSQUEDA ORIGINAL */}
       <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -107,7 +133,6 @@ const ListaProductos: React.FC = () => {
         />
       </div>
 
-      {/* TABLA ENVUELTA EN DIV CON SCROLL HORIZONTAL */}
       <div style={{ overflowX: 'auto', width: '100%' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
           <thead>
@@ -132,7 +157,6 @@ const ListaProductos: React.FC = () => {
       alt="Producto" 
       style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} 
       onError={(e) => {
-        // Si CUALQUIER imagen falla en cargar por internet, la ocultamos para que no salga error roto
         (e.target as HTMLImageElement).style.display = 'none';
       }}
     />
@@ -158,7 +182,6 @@ const ListaProductos: React.FC = () => {
         </table>
       </div>
 
-      {/* MODAL ORIGINAL CON TODOS TUS CAMPOS Y ETIQUETAS */}
       {isDetailModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '15px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
@@ -186,18 +209,20 @@ const ListaProductos: React.FC = () => {
 
             <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               
-              {/* SEGURIDAD: Solo Admin(1) y Encargado(2) */}
               {(rol === 1 || rol === 2) && (
                 <button onClick={() => updateMutation.mutate(editData)} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
                   💾 Guardar
                 </button>
               )}
               
-              <button onClick={() => setIsComuModalOpen(true)} style={{ flex: 1, padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                📧 Pedir más
+              <button 
+                onClick={() => setIsComuModalOpen(true)} 
+                disabled={emailMutation.isPending}
+                style={{ flex: 1, padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+              >
+                {emailMutation.isPending ? 'Enviando...' : '📧 Pedir más'}
               </button>
 
-              {/* SEGURIDAD: Solo Admin(1) */}
               {rol === 1 && (
                 <button onClick={() => { if(confirm("¿Seguro que quieres eliminar este producto?")) deleteMutation.mutate(selectedProduct.producto_id) }} style={{ width: '100%', padding: '10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '5px' }}>
                   🗑️ Eliminar Producto
@@ -215,8 +240,13 @@ const ListaProductos: React.FC = () => {
       <ModalComunicacion 
         isOpen={isComuModalOpen} 
         onClose={() => setIsComuModalOpen(false)} 
-        datosPredefinidos={{...selectedProduct, correo_principal: 'proveedor@test.com'}} 
-        onEnviar={(data) => { console.log("Enviando...", data); setIsComuModalOpen(false); alert("Correo enviado"); }}
+        datosPredefinidos={{
+          ...selectedProduct, 
+          correo_principal: selectedProduct?.correo_principal || 'cb.erik.espinoza.s@upds.net.bo',
+          stock_actual: selectedProduct?.stock_total || 0,
+          cantidad_actual: selectedProduct?.stock_total || 0
+        }} 
+        onEnviar={handleEnviarCorreo}
       />
     </div>
   );
