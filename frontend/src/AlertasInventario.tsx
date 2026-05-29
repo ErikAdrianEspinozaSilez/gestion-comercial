@@ -37,27 +37,42 @@ const AlertasInventario: React.FC = () => {
     },
     onError: (error) => {
       console.error('Error al enviar:', error);
-      alert('❌ Error al enviar. Revisa que el backend esté encendido y la ruta exista.');
+      alert('❌ Error al enviar. Revisa la consola para más detalles.');
     },
   });
 
   const handleNotificarClick = (producto: any) => {
+    // 1. Capturamos el stock real sin importar el nombre con el que venga
+    const stockReal = producto.stock_actual ?? producto.stock_total ?? 0;
+    
+    // 2. Forzamos un ID de proveedor válido si el backend no lo trae
+    const provId = producto.proveedor_id ?? 1;
+
     setSelectedData({
       producto_id: producto.producto_id,
       nombre_producto: producto.nombre_producto,
-      cantidad_actual: Number(producto.stock_total),
-      stock_minimo: producto.stock_minimo || 5,
-      correo_principal: producto.correo_principal || '',
-      proveedor_id: producto.proveedor_id || 1,
-      codigo_barra: producto.codigo_barra || '',
       
+      // 🔥 Pasamos ambos nombres para que el Modal siempre encuentre el dato
+      cantidad_actual: Number(stockReal),
+      stock_actual: Number(stockReal), 
+      
+      stock_minimo: producto.stock_minimo ?? 5,
+      // Forzamos tu correo por defecto para la defensa si no hay uno registrado
+      correo_principal: producto.correo_principal || 'erik.adrian753@gmail.com',
+      proveedor_id: Number(provId), 
+      codigo_barra: producto.codigo_barra || '',
     });
 
     setIsModalOpen(true);
   };
 
   const handleConfirmarEnvio = (formData: any) => {
-    mutation.mutate(formData);
+    // Aseguramos que el ID del proveedor viaje en el formulario final
+    const finalData = {
+      ...formData,
+      proveedor_id: formData.proveedor_id || selectedData.proveedor_id
+    };
+    mutation.mutate(finalData);
   };
 
   if (!stockBajo || stockBajo.length === 0) return null;
@@ -78,48 +93,51 @@ const AlertasInventario: React.FC = () => {
       </h4>
 
       <div style={{ marginTop: '10px' }}>
-        {stockBajo.map((p: any) => (
-          <div
-            key={`${p.producto_id}-${p.stock_total}`}
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #ffeeba',
-              borderRadius: '6px',
-              padding: '10px',
-              marginBottom: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <div style={{ fontSize: '14px', color: '#856404' }}>
-              <strong>{p.nombre_producto}</strong>: Solo quedan
-              <span style={{ fontWeight: 'bold', color: '#dc3545' }}>
-                {' '}
-                {Number(p.stock_total).toFixed(0)}{' '}
-              </span>
-              unidades.
-            </div>
-
-            <button
-              onClick={() => handleNotificarClick(p)}
-              disabled={mutation.isPending}
+        {stockBajo.map((p: any) => {
+          const stockMostrar = p.stock_actual ?? p.stock_total ?? 0;
+          return (
+            <div
+              key={`${p.producto_id}-${stockMostrar}`}
               style={{
-                backgroundColor: '#0d6efd',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '5px',
-                padding: '7px 10px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
+                backgroundColor: '#ffffff',
+                border: '1px solid #ffeeba',
+                borderRadius: '6px',
+                padding: '10px',
+                marginBottom: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '10px',
               }}
             >
-              📧 Notificar Proveedor
-            </button>
-          </div>
-        ))}
+              <div style={{ fontSize: '14px', color: '#856404' }}>
+                <strong>{p.nombre_producto}</strong>: Solo quedan
+                <span style={{ fontWeight: 'bold', color: '#dc3545' }}>
+                  {' '}
+                  {Number(stockMostrar).toFixed(0)}{' '}
+                </span>
+                unidades.
+              </div>
+
+              <button
+                onClick={() => handleNotificarClick(p)}
+                disabled={mutation.isPending}
+                style={{
+                  backgroundColor: '#0d6efd',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '5px',
+                  padding: '7px 10px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                📧 Notificar Proveedor
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <ModalComunicacion
