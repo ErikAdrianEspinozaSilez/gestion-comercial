@@ -58,7 +58,7 @@ const AlertasInventario: React.FC = () => {
       
       stock_minimo: producto.stock_minimo ?? 5,
       // Forzamos tu correo por defecto para la defensa si no hay uno registrado
-      correo_principal: producto.correo_principal || 'erik.adrian753@gmail.com',
+      correo_principal: producto.correo_principal || 'cb.erik.espinoza.s@upds.net.bo',
       proveedor_id: Number(provId), 
       codigo_barra: producto.codigo_barra || '',
     });

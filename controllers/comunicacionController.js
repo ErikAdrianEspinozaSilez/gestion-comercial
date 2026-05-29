@@ -36,7 +36,7 @@ const enviarCorreoProveedor = async (req, res) => {
         // 4️⃣ Preparar y enviar correo usando Resend API
         const { data, error } = await resend.emails.send({
             from: 'Super Valle Market <onboarding@resend.dev>', // Correo de prueba oficial de Resend
-            to: destino, // RECUERDA: En la prueba gratuita, este destino DEBE ser el correo con el que te registraste en Resend
+            to: 'cb.erik.espinoza.s@upds.net.bo', // RECUERDA: En la prueba gratuita, este destino DEBE ser el correo con el que te registraste en Resend
             subject: asunto || "Notificación de Reabastecimiento - Super Valle Market",
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px;">
