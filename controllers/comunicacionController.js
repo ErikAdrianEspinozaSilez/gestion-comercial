@@ -18,16 +18,15 @@ const enviarCorreoProveedor = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *;
         `;
-        const values = [
+     const values = [
             solicitud_compra_id || null,
-            proveedor_id,
+            proveedor_id || 1, // 🔥 EL SALVAVIDAS: Si el frontend falla y manda undefined, usamos el proveedor 1
             'correo',
             destino,
             asunto,
             mensaje,
             'enviado' 
         ];
-
         const resultadoBD = await pool.query(query, values);
         const id_real = resultadoBD.rows[0].comunicacion_proveedor_id;
 
