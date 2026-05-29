@@ -16,7 +16,15 @@ const usuariosRouter = require('./routes/usuarios');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// 🛠️ SOLUCIÓN CORS: Le damos permiso VIP a tu Vercel y a tu localhost
+const corsOptions = {
+    origin: ['http://localhost:5173', 'https://gestion-comercial-six.vercel.app'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'] // Aseguramos que pasen los tokens de login
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // Rutas
