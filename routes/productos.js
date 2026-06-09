@@ -76,24 +76,19 @@ router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
       SELECT 
-        p.producto_id, 
-        p.nombre_producto, 
-        p.codigo_barra, 
-        p.stock_bodega, 
-        p.stock_estante,
-        (p.stock_bodega + p.stock_estante) AS stock_total
-      FROM gestion_comercial.dim_producto p
-      WHERE p.activo = TRUE 
-      AND (p.stock_estante < 5 OR p.stock_bodega < 5)
+        producto_id, nombre_producto, codigo_barra, imagen_url, 
+        stock_bodega, stock_estante,
+        (stock_bodega + stock_estante) AS stock_total
+      FROM gestion_comercial.dim_producto
+      WHERE activo = TRUE 
+      AND (stock_estante < 5 OR (stock_bodega + stock_estante) < 5);
     `;
-
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // 4. CONSULTA DE TODOS LOS PRODUCTOS (Para la tabla de inventario con Ubicaciones)
 router.get('/', async (req, res) => {
   try {

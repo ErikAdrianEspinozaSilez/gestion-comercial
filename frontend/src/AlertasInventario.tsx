@@ -42,24 +42,22 @@ const AlertasInventario: React.FC = () => {
   });
 
   const handleNotificarClick = (producto: any) => {
-    // 1. Capturamos el stock real sin importar el nombre con el que venga
     const stockReal = producto.stock_actual ?? producto.stock_total ?? 0;
-    
-    // 2. Forzamos un ID de proveedor válido si el backend no lo trae
     const provId = producto.proveedor_id ?? 1;
 
     setSelectedData({
       producto_id: producto.producto_id,
       nombre_producto: producto.nombre_producto,
-      
-      // 🔥 Pasamos ambos nombres para que el Modal siempre encuentre el dato
+
       cantidad_actual: Number(stockReal),
-      stock_actual: Number(stockReal), 
-      
+      stock_actual: Number(stockReal),
+
       stock_minimo: producto.stock_minimo ?? 5,
-      // Forzamos tu correo por defecto para la defensa si no hay uno registrado
-      correo_principal: producto.correo_principal || 'cb.erik.espinoza.s@upds.net.bo',
-      proveedor_id: Number(provId), 
+      correo_principal:
+        producto.correo_principal ||
+        'cb.erik.espinoza.s@upds.net.bo',
+
+      proveedor_id: Number(provId),
       codigo_barra: producto.codigo_barra || '',
     });
 
@@ -67,11 +65,12 @@ const AlertasInventario: React.FC = () => {
   };
 
   const handleConfirmarEnvio = (formData: any) => {
-    // Aseguramos que el ID del proveedor viaje en el formulario final
     const finalData = {
       ...formData,
-      proveedor_id: formData.proveedor_id || selectedData.proveedor_id
+      proveedor_id:
+        formData.proveedor_id || selectedData.proveedor_id,
     };
+
     mutation.mutate(finalData);
   };
 
@@ -88,13 +87,20 @@ const AlertasInventario: React.FC = () => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}
     >
-      <h4 style={{ margin: 0, color: '#856404' }}>
+      <h4
+        style={{
+          margin: 0,
+          color: '#856404',
+        }}
+      >
         ⚠️ Alerta de Reabastecimiento
       </h4>
 
       <div style={{ marginTop: '10px' }}>
         {stockBajo.map((p: any) => {
-          const stockMostrar = p.stock_actual ?? p.stock_total ?? 0;
+          const stockMostrar =
+            p.stock_actual ?? p.stock_total ?? 0;
+
           return (
             <div
               key={`${p.producto_id}-${stockMostrar}`}
@@ -110,13 +116,33 @@ const AlertasInventario: React.FC = () => {
                 gap: '10px',
               }}
             >
-              <div style={{ fontSize: '14px', color: '#856404' }}>
-                <strong>{p.nombre_producto}</strong>: Solo quedan
-                <span style={{ fontWeight: 'bold', color: '#dc3545' }}>
-                  {' '}
-                  {Number(stockMostrar).toFixed(0)}{' '}
+              <div
+                style={{
+                  fontSize: '14px',
+                  color: '#856404',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <strong>{p.nombre_producto}</strong>
+
+                <span>
+                  📦 Bodega:{' '}
+                  <strong>{p.stock_bodega ?? 0}</strong>
+                  {' | '}
+                  🏪 Estante:{' '}
+                  <strong>{p.stock_estante ?? 0}</strong>
                 </span>
-                unidades.
+
+                <span>
+                  🔢 Total:{' '}
+                  <strong style={{ color: '#dc3545' }}>
+                    {Number(
+                      p.stock_total ?? stockMostrar
+                    ).toFixed(0)}
+                  </strong>
+                </span>
               </div>
 
               <button
