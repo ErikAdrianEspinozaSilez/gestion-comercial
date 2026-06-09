@@ -2,8 +2,17 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
+// Paleta definida para coherencia total
+const COLORS = {
+  azul: '#2563eb',
+  verde: '#10b981',
+  ambar: '#f59e0b',
+  morado: '#8b5cf6',
+  grisOscuro: '#1e293b',
+  grisClaro: '#64748b'
+};
+
 const DashboardVentas: React.FC = () => {
-  // 1. Consulta a la ruta de ventas (Hoy, Semana, Mes, Producto Estrella)
   const { data: sales, isLoading: loadingSales } = useQuery({
     queryKey: ['dashboard-ventas'],
     queryFn: async () => {
@@ -13,7 +22,6 @@ const DashboardVentas: React.FC = () => {
     refetchInterval: 5000
   });
 
-  // 2. Consulta a la ruta de estadísticas (Productos totales y stock bajo)
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['stats-dashboard-unificado'],
     queryFn: async () => {
@@ -23,79 +31,51 @@ const DashboardVentas: React.FC = () => {
     refetchInterval: 5000
   });
 
-  if (loadingSales || loadingStats) return <p>Cargando estadísticas de Super Valle...</p>;
+  if (loadingSales || loadingStats) return <div style={{ padding: '20px', textAlign: 'center', color: COLORS.grisClaro }}>Cargando métricas...</div>;
+
+  // Componente pequeño para tarjetas uniformes
+  const StatCard = ({ title, value, color, icon }: any) => (
+    <div style={{ 
+      padding: '20px', 
+      backgroundColor: '#ffffff', 
+      borderRadius: '16px', 
+      borderLeft: `5px solid ${color}`,
+      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between'
+    }}>
+      <span style={{ fontSize: '0.85rem', color: COLORS.grisClaro, fontWeight: '600', textTransform: 'uppercase' }}>{title}</span>
+      <span style={{ fontSize: '1.8rem', fontWeight: '800', color: COLORS.grisOscuro, marginTop: '8px' }}>{value}</span>
+    </div>
+  );
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', marginBottom: '20px' }}>
-      <h3 style={{ margin: '0 0 20px 0', color: '#1e293b', fontWeight: 'bold' }}>📊 Resumen Ejecutivo Comercial</h3>
+    <div style={{ padding: '10px 0' }}>
+      <h3 style={{ marginBottom: '20px', color: COLORS.grisOscuro, fontWeight: '800', fontSize: '1.5rem' }}> Resumen Ejecutivo</h3>
       
-      {/* Contenedor Grid responsivo para las 6 tarjetas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+        <StatCard title="Ventas Hoy" value={`Bs. ${sales?.ventas_hoy || '0.00'}`} color={COLORS.verde} />
+        <StatCard title="Esta Semana" value={`Bs. ${sales?.ventas_semana || '0.00'}`} color={COLORS.azul} />
+        <StatCard title="Este Mes" value={`Bs. ${sales?.ventas_mes || '0.00'}`} color={COLORS.morado} />
+        <StatCard title="Productos Activos" value={`${stats?.total_items || '0'} ítems`} color={COLORS.grisOscuro} />
+        <StatCard title="Stock Bajo" value={`${stats?.bajo_stock || '0'} alertas`} color={Number(stats?.bajo_stock) > 0 ? '#ef4444' : COLORS.grisClaro} />
         
-        {/* Tarjeta 1: Ventas de Hoy */}
-        <div style={{ padding: '15px', backgroundColor: '#10b981', color: 'white', borderRadius: '12px', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}>
-          <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: '500', opacity: 0.9 }}>Ventas de Hoy</h4>
-          <p style={{ margin: '0', fontSize: '1.6rem', fontWeight: 'bold' }}>Bs. {sales?.ventas_hoy || '0.00'}</p>
-        </div>
-
-        {/* Tarjeta 2: Ventas de la Semana */}
-        <div style={{ padding: '15px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '12px', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.2)' }}>
-          <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: '500', opacity: 0.9 }}>Esta Semana</h4>
-          <p style={{ margin: '0', fontSize: '1.6rem', fontWeight: 'bold' }}>Bs. {sales?.ventas_semana || '0.00'}</p>
-        </div>
-
-        {/* Tarjeta 3: Ventas del Mes */}
-        <div style={{ padding: '15px', backgroundColor: '#8b5cf6', color: 'white', borderRadius: '12px', boxShadow: '0 4px 10px rgba(139, 92, 246, 0.2)' }}>
-          <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: '500', opacity: 0.9 }}>Este Mes</h4>
-          <p style={{ margin: '0', fontSize: '1.6rem', fontWeight: 'bold' }}>Bs. {sales?.ventas_mes || '0.00'}</p>
-        </div>
-
-        {/* MIGRADO - Tarjeta 4: Productos Totales */}
-        <div style={{ padding: '15px', backgroundColor: '#475569', color: 'white', borderRadius: '12px', boxShadow: '0 4px 10px rgba(71, 85, 105, 0.2)' }}>
-          <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: '500', opacity: 0.9 }}>Productos Activos</h4>
-          <p style={{ margin: '0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats?.total_items || '0'} ítems</p>
-        </div>
-
-        {/* MIGRADO - Tarjeta 5: Alertas de Stock Bajo */}
+        {/* Producto Estrella con diseño especial */}
         <div style={{ 
-          padding: '15px', 
-          backgroundColor: Number(stats?.bajo_stock) > 0 ? '#ef4444' : '#64748b', 
-          color: 'white', 
-          borderRadius: '12px', 
-          boxShadow: Number(stats?.bajo_stock) > 0 ? '0 4px 10px rgba(239, 68, 68, 0.3)' : 'none',
-          transition: 'all 0.3s ease'
+          padding: '20px', backgroundColor: COLORS.ambar, color: 'white', borderRadius: '16px', 
+          display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)' 
         }}>
-          <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: '500', opacity: 0.9 }}>⚠️ Alertas Stock Bajo</h4>
-          <p style={{ margin: '0', fontSize: '1.6rem', fontWeight: 'bold' }}>{stats?.bajo_stock || '0'} productos</p>
+          <img 
+            src={sales?.producto_estrella?.imagen_url || 'https://placehold.co/60x60/f59e0b/white?text=⭐'} 
+            alt="Estrella" 
+            style={{ width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover' }} 
+          />
+          <div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Producto Estrella</div>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{sales?.producto_estrella?.nombre_producto || 'N/A'}</div>
+          </div>
         </div>
-
-        {/* Tarjeta 6: Producto Estrella */}
-        <div style={{ padding: '12px 15px', backgroundColor: '#f59e0b', color: 'white', borderRadius: '12px', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {sales?.producto_estrella ? (
-            <>
-              <img 
-                src={sales.producto_estrella.imagen_url || 'https://placehold.co/60x60/e2e8f0/64748b?text=SVM'} 
-                alt="Estrella" 
-                style={{ width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', flexShrink: 0 }} 
-              />
-              <div style={{ overflow: 'hidden' }}>
-                <h4 style={{ margin: '0', fontSize: '0.8rem', fontWeight: '500', opacity: 0.9 }}>⭐ Más Vendido</h4>
-                <p style={{ margin: '0', fontSize: '1rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {sales.producto_estrella.nombre_producto}
-                </p>
-                <small style={{ fontSize: '0.75rem', opacity: 0.95 }}>
-                  {sales.producto_estrella.total_vendido} Bs.
-                </small>
-              </div>
-            </>
-          ) : (
-            <div>
-              <h4 style={{ margin: '0 0 2px 0', fontSize: '0.85rem', fontWeight: '500' }}>⭐ Producto Estrella</h4>
-              <p style={{ margin: '0', fontSize: '0.75rem', opacity: 0.9 }}>Sin registros de venta</p>
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   );

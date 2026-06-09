@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const HistorialMovimientos: React.FC = () => {
-
   // =========================
   // ESTADOS
   // =========================
@@ -21,35 +20,50 @@ const HistorialMovimientos: React.FC = () => {
   const [fechaFin, setFechaFin] = useState(hoy);
 
   // =========================
+  // PAGINACIÓN
+  // =========================
+
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 10;
+
+  // Reinicia a página 1 cuando cambia el filtro o la búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, filtroPeriodo]);
+
+  // =========================
   // ESTILOS REUTILIZABLES
   // =========================
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     padding: '10px',
     borderRadius: '6px',
     border: '1px solid #cbd5e1',
-    fontSize: '14px'
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
   };
 
-  const labelStyle = {
+  const labelStyle: React.CSSProperties = {
     fontSize: '12px',
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#475569'
   };
 
-  const cardStyle = {
-    padding: '15px',
+  const cardStyle: React.CSSProperties = {
+    padding: '18px',
     color: 'white',
-    borderRadius: '10px',
-    textAlign: 'center' as const
+    borderRadius: '14px',
+    textAlign: 'center',
+    boxShadow: '0 8px 18px rgba(0,0,0,0.12)'
   };
 
-  const buttonStyle = {
+  const buttonStyle: React.CSSProperties = {
     padding: '11px 20px',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontWeight: 'bold' as const,
+    borderRadius: '8px',
+    fontWeight: 'bold',
     cursor: 'pointer',
     fontSize: '14px'
   };
@@ -87,9 +101,7 @@ const HistorialMovimientos: React.FC = () => {
   // =========================
 
   const generarReportePDF = async () => {
-
     try {
-
       let url = `https://gestion-comercial-j3ed.onrender.com/movimientos/reporte-pdf?filtro=${tipoFiltro}`;
 
       if (tipoFiltro === 'mes_especifico') {
@@ -101,9 +113,9 @@ const HistorialMovimientos: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      const movimientos = response.data;
+      const movimientosPDF = response.data;
 
-      if (movimientos.length === 0) {
+      if (movimientosPDF.length === 0) {
         alert('ℹ️ No se encontraron movimientos de stock.');
         return;
       }
@@ -112,11 +124,11 @@ const HistorialMovimientos: React.FC = () => {
       // TOTALES
       // =========================
 
-      const totalVendido = movimientos
+      const totalVendido = movimientosPDF
         .filter((m: any) => Number(m.tipo_movimiento_id) === 2)
         .reduce((sum: number, m: any) => sum + Number(m.cantidad) * Number(m.precio), 0);
 
-      const totalInvertido = movimientos
+      const totalInvertido = movimientosPDF
         .filter((m: any) => Number(m.tipo_movimiento_id) === 1)
         .reduce((sum: number, m: any) => sum + Number(m.cantidad) * Number(m.precio), 0);
 
@@ -127,36 +139,30 @@ const HistorialMovimientos: React.FC = () => {
       const doc = new jsPDF();
 
       // ENCABEZADO
-
       doc.setFontSize(20);
-      doc.setTextColor(0, 0, 0); // NEGRO
+      doc.setTextColor(0, 0, 0);
       doc.text('SUPER VALLE MARKET', 14, 20);
 
       doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0); // NEGRO
+      doc.setTextColor(0, 0, 0);
       doc.text('REPORTE AUDITADO DE CONTROL DE INVENTARIO Y SALIDAS', 14, 28);
 
       doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0); // NEGRO
+      doc.setTextColor(0, 0, 0);
       doc.text(`Fecha de Emisión: ${new Date().toLocaleString()}`, 14, 35);
-      doc.text(`Registros impresos: ${movimientos.length}`, 14, 40);
+      doc.text(`Registros impresos: ${movimientosPDF.length}`, 14, 40);
 
       // FINANZAS
-
       doc.setFontSize(11);
-
-      doc.setTextColor(0, 0, 0); // NEGRO
+      doc.setTextColor(0, 0, 0);
       doc.text(`Total Vendido (Ingresos): ${totalVendido.toFixed(2)} Bs.`, 14, 49);
-
       doc.text(`Total Comprado (Egresos): ${totalInvertido.toFixed(2)} Bs.`, 110, 49);
 
       // LÍNEA
-
       doc.setDrawColor(180, 180, 180);
       doc.line(14, 53, 196, 53);
 
       // TABLA
-
       const columnasTabla = [
         'ID Mov.',
         'Producto / Artículo',
@@ -165,7 +171,7 @@ const HistorialMovimientos: React.FC = () => {
         'Fecha'
       ];
 
-      const filasTabla = movimientos.map((m: any) => [
+      const filasTabla = movimientosPDF.map((m: any) => [
         `#${m.movimiento_id}`,
         m.nombre_producto,
         Number(m.tipo_movimiento_id) === 1 ? 'ENTRADA' : 'SALIDA',
@@ -178,22 +184,18 @@ const HistorialMovimientos: React.FC = () => {
         head: [columnasTabla],
         body: filasTabla,
         theme: 'striped',
-
         headStyles: {
           fillColor: [0, 0, 0],
           textColor: [255, 255, 255],
           fontStyle: 'bold'
         },
-
         bodyStyles: {
-          textColor: [0, 0, 0], // NEGRO
+          textColor: [0, 0, 0],
           fontSize: 10
         },
-
         alternateRowStyles: {
           fillColor: [245, 245, 245]
         },
-
         styles: {
           overflow: 'linebreak'
         }
@@ -202,9 +204,7 @@ const HistorialMovimientos: React.FC = () => {
       doc.save(`Reporte_SuperValle_${tipoFiltro}.pdf`);
 
     } catch (error) {
-
       console.error('Error generando PDF:', error);
-
       alert('❌ Error de comunicación con la base de datos.');
     }
   };
@@ -214,7 +214,6 @@ const HistorialMovimientos: React.FC = () => {
   // =========================
 
   const movimientosFiltrados = movimientos?.filter((m: any) => {
-
     const termino = searchTerm.toLowerCase();
 
     return (
@@ -222,7 +221,16 @@ const HistorialMovimientos: React.FC = () => {
       m.nombre_tipo?.toLowerCase().includes(termino) ||
       m.fecha_formateada?.toLowerCase().includes(termino)
     );
-  });
+  }) || [];
+
+  // =========================
+  // PAGINACIÓN APLICADA
+  // =========================
+
+  const indexFinal = paginaActual * itemsPorPagina;
+  const indexInicial = indexFinal - itemsPorPagina;
+  const movimientosPaginados = movimientosFiltrados.slice(indexInicial, indexFinal);
+  const totalPaginas = Math.ceil(movimientosFiltrados.length / itemsPorPagina);
 
   // =========================
   // LOADING
@@ -237,15 +245,20 @@ const HistorialMovimientos: React.FC = () => {
   // =========================
 
   return (
-    <div style={{ marginTop: '20px', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{
+      marginTop: '20px',
+      fontFamily: 'Arial, sans-serif',
+      padding: '20px',
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+      borderLeft: '6px solid #2563eb',
+      marginBottom: '20px'
+    }}>
 
       {/* HEADER PDF */}
 
       <div style={{
-        padding: '25px',
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         marginBottom: '25px'
       }}>
 
@@ -255,7 +268,7 @@ const HistorialMovimientos: React.FC = () => {
           fontSize: '24px',
           fontWeight: 'bold'
         }}>
-          📜 Historial de Movimientos Financieros
+           Historial de Movimientos Financieros
         </h2>
 
         <p style={{
@@ -276,13 +289,13 @@ const HistorialMovimientos: React.FC = () => {
           backgroundColor: '#f8fafc',
           padding: '15px',
           borderRadius: '10px',
-          border: '1px solid #e2e8f0'
+          border: '1px solid #e2e8f0',
+          marginBottom: '20px'
         }}>
 
           {/* TIPO FILTRO */}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-
             <label style={labelStyle}>Tipo de Filtro</label>
 
             <select
@@ -300,9 +313,7 @@ const HistorialMovimientos: React.FC = () => {
           {/* MES */}
 
           {tipoFiltro === 'mes_especifico' && (
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-
               <label style={labelStyle}>Seleccione el Mes</label>
 
               <input
@@ -367,27 +378,28 @@ const HistorialMovimientos: React.FC = () => {
 
         <div style={{ ...cardStyle, background: '#10b981' }}>
           <small>Ventas Hoy</small>
-          <h2>Bs. {stats?.ventas_hoy}</h2>
+          <h2>Bs. {stats?.ventas_hoy || '0.00'}</h2>
         </div>
 
         <div style={{ ...cardStyle, background: '#3b82f6' }}>
           <small>Esta Semana</small>
-          <h2>Bs. {stats?.ventas_semana}</h2>
+          <h2>Bs. {stats?.ventas_semana || '0.00'}</h2>
         </div>
 
         <div style={{ ...cardStyle, background: '#8b5cf6' }}>
           <small>Este Mes</small>
-          <h2>Bs. {stats?.ventas_mes}</h2>
+          <h2>Bs. {stats?.ventas_mes || '0.00'}</h2>
         </div>
       </div>
 
       {/* FILTROS TABLA */}
 
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: '#ffffff',
         padding: '20px',
         borderRadius: '12px 12px 0 0',
-        borderBottom: '2px solid #000'
+        border: '1px solid #e2e8f0',
+        borderBottom: 'none'
       }}>
 
         <div style={{
@@ -409,7 +421,6 @@ const HistorialMovimientos: React.FC = () => {
           }}>
 
             {['todos', 'hoy', 'semana', 'mes'].map((p) => (
-
               <button
                 key={p}
                 onClick={() => setFiltroPeriodo(p)}
@@ -420,6 +431,7 @@ const HistorialMovimientos: React.FC = () => {
                   cursor: 'pointer',
                   textTransform: 'capitalize',
                   backgroundColor: filtroPeriodo === p ? 'white' : 'transparent',
+                  color: filtroPeriodo === p ? '#0f172a' : 'white',
                   fontWeight: filtroPeriodo === p ? 'bold' : 'normal'
                 }}
               >
@@ -437,7 +449,8 @@ const HistorialMovimientos: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               ...inputStyle,
-              width: '300px'
+              width: '300px',
+              maxWidth: '100%'
             }}
           />
         </div>
@@ -445,93 +458,151 @@ const HistorialMovimientos: React.FC = () => {
 
       {/* TABLA */}
 
-      <table style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        backgroundColor: 'white'
+      <div style={{
+        overflowX: 'auto',
+        border: '1px solid #e2e8f0',
+        borderRadius: '0 0 12px 12px'
       }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          backgroundColor: 'white',
+          minWidth: '700px'
+        }}>
 
-        <thead>
-
-          <tr style={{
-            backgroundColor: '#f8fafc',
-            textAlign: 'left'
-          }}>
-
-            {['Fecha/Hora', 'Producto', 'Tipo', 'Cant.', 'Subtotal']
-              .map((titulo) => (
-
-                <th key={titulo} style={{ padding: '12px' }}>
-                  {titulo}
-                </th>
-              ))}
-          </tr>
-        </thead>
-
-        <tbody>
-
-          {movimientosFiltrados?.map((m: any) => (
-
-            <tr
-              key={m.movimiento_id}
-              style={{ borderBottom: '1px solid #f1f5f9' }}
-            >
-
-              <td style={{ padding: '12px' }}>
-                {m.fecha_formateada}
-              </td>
-
-              <td style={{
-                padding: '12px',
-                fontWeight: 'bold'
-              }}>
-                {m.nombre_producto}
-              </td>
-
-              <td style={{ padding: '12px' }}>
-
-                <span style={{
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: m.nombre_tipo === 'Entrada'
-                    ? '#d4edda'
-                    : '#fee2e2',
-
-                  color: m.nombre_tipo === 'Entrada'
-                    ? '#155724'
-                    : '#991b1b'
-                }}>
-                  {m.nombre_tipo}
-                </span>
-              </td>
-
-              <td style={{ padding: '12px' }}>
-                {m.cantidad}
-              </td>
-
-              <td style={{
-                padding: '12px',
-                fontWeight: 'bold'
-              }}>
-                Bs. {m.subtotal || '0.00'}
-              </td>
+          <thead>
+            <tr style={{
+              backgroundColor: '#f8fafc',
+              textAlign: 'left'
+            }}>
+              {['Fecha/Hora', 'Producto', 'Tipo', 'Cant.', 'Subtotal']
+                .map((titulo) => (
+                  <th
+                    key={titulo}
+                    style={{
+                      padding: '14px 12px',
+                      color: '#475569',
+                      fontSize: '0.85rem',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {titulo}
+                  </th>
+                ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {movimientosPaginados.map((m: any) => (
+              <tr
+                key={m.movimiento_id}
+                style={{
+                  borderBottom: '1px solid #f1f5f9'
+                }}
+              >
+                <td style={{ padding: '12px' }}>
+                  {m.fecha_formateada}
+                </td>
+
+                <td style={{
+                  padding: '12px',
+                  fontWeight: 'bold',
+                  color: '#1e293b'
+                }}>
+                  {m.nombre_producto}
+                </td>
+
+                <td style={{ padding: '12px' }}>
+                  <span style={{
+                    padding: '5px 10px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    backgroundColor: m.nombre_tipo === 'Entrada'
+                      ? '#d4edda'
+                      : '#fee2e2',
+                    color: m.nombre_tipo === 'Entrada'
+                      ? '#155724'
+                      : '#991b1b'
+                  }}>
+                    {m.nombre_tipo}
+                  </span>
+                </td>
+
+                <td style={{ padding: '12px' }}>
+                  {m.cantidad}
+                </td>
+
+                <td style={{
+                  padding: '12px',
+                  fontWeight: 'bold',
+                  color: m.nombre_tipo === 'Entrada' ? '#64748b' : '#10b981'
+                }}>
+                  Bs. {m.subtotal || '0.00'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* SIN DATOS */}
 
-      {movimientosFiltrados?.length === 0 && (
-
+      {movimientosFiltrados.length === 0 && (
         <div style={{
           textAlign: 'center',
           padding: '40px',
           background: 'white',
-          color: '#64748b'
+          color: '#64748b',
+          border: '1px solid #e2e8f0',
+          borderTop: 'none',
+          borderRadius: '0 0 12px 12px'
         }}>
           No hay movimientos registrados.
+        </div>
+      )}
+
+      {/* PAGINACIÓN */}
+
+      {movimientosFiltrados.length > 0 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          marginTop: '20px',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+            disabled={paginaActual === 1}
+            style={{
+              ...buttonStyle,
+              backgroundColor: paginaActual === 1 ? '#94a3b8' : '#64748b',
+              cursor: paginaActual === 1 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Anterior
+          </button>
+
+          <span style={{
+            color: '#475569',
+            fontWeight: 'bold'
+          }}>
+            Pág {paginaActual} de {totalPaginas || 1}
+          </span>
+
+          <button
+            onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaActual >= totalPaginas}
+            style={{
+              ...buttonStyle,
+              backgroundColor: paginaActual >= totalPaginas ? '#94a3b8' : '#64748b',
+              cursor: paginaActual >= totalPaginas ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Siguiente
+          </button>
         </div>
       )}
     </div>

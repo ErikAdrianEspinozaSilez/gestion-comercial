@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
+import toast from 'react-hot-toast';
 
 const AgregarProducto: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre_producto: '',
-    precio: '', // <--- ÚNICO PRECIO
+    precio: '',
     codigo_barra: '',
     imagen_url: ''
   });
@@ -14,21 +15,25 @@ const AgregarProducto: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: async (nuevoProducto: typeof formData) => {
-      return await axios.post('https://gestion-comercial-j3ed.onrender.com/productos', nuevoProducto);
+      return await axios.post(
+        'https://gestion-comercial-j3ed.onrender.com/productos',
+        nuevoProducto
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['productos'] });
 
       setFormData({
         nombre_producto: '',
-        precio: '', // <--- ÚNICO PRECIO
+        precio: '',
         codigo_barra: '',
         imagen_url: ''
       });
 
-      alert("¡Producto registrado en Super Valle!");
+      toast.success("¡Producto registrado con éxito!");
     },
     onError: (error: AxiosError) => {
+      toast.error("Error al registrar el producto.");
       console.error("Error detallado:", error.response?.data);
     }
   });
@@ -36,119 +41,130 @@ const AgregarProducto: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.nombre_producto.trim()) return;
+    if (!formData.nombre_producto.trim()) {
+      toast.error("El nombre del producto es obligatorio.");
+      return;
+    }
 
     mutation.mutate(formData);
   };
 
-  // Esta es la función que intercepta el "Enter"
-  const handleEnterKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();  // Prevenimos el envío del formulario al presionar "Enter"
-    }
+  // Estilos reutilizables
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s'
   };
 
   return (
     <div style={{
       marginBottom: '20px',
-      padding: '20px',
-      backgroundColor: '#f4f7f6',
-      borderRadius: '12px',
-      borderLeft: '5px solid #007bff',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      padding: '25px',
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      borderLeft: '6px solid #2563eb',
+      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+      transition: 'all 0.3s ease'
     }}>
-      <h3 style={{ marginTop: 0, color: '#333' }}>📦 Registro de Mercadería</h3>
+      <h3 style={{
+        marginTop: 0,
+        color: '#1e293b',
+        marginBottom: '20px',
+        fontSize: '1.25rem',
+        fontWeight: '700'
+      }}>
+         Registrar nueva mercadería
+      </h3>
 
-      <form onSubmit={handleSubmit}>
-        {/* Campos para Nombre del Producto, Precio, etc. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
-          <label style={{ fontSize: '14px', color: '#64748b' }}>Nombre del Producto</label>
-          <input
-            type="text"
-            value={formData.nombre_producto}
-            onChange={(e) => setFormData({ ...formData, nombre_producto: e.target.value })}
-            placeholder="Ingrese nombre del producto"
-            disabled={mutation.isPending}
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px'
+        }}
+      >
+        {[
+          {
+            label: 'Nombre del Producto',
+            key: 'nombre_producto',
+            type: 'text',
+            placeholder: 'Ej. Coca Cola 2L'
+          },
+          {
+            label: 'Precio (Bs.)',
+            key: 'precio',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            label: 'Imagen URL',
+            key: 'imagen_url',
+            type: 'text',
+            placeholder: 'https://...'
+          },
+          {
+            label: 'Código de Barra',
+            key: 'codigo_barra',
+            type: 'text',
+            placeholder: 'Escanee o digite código'
+          }
+        ].map((field) => (
+          <div
+            key={field.key}
             style={{
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1'
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
             }}
-          />
-        </div>
+          >
+            <label style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#64748b'
+            }}>
+              {field.label}
+            </label>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
-          <label style={{ fontSize: '14px', color: '#64748b' }}>Precio</label>
-          <input
-            type="number"
-            value={formData.precio}
-            onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-            placeholder="Ingrese precio"
-            disabled={mutation.isPending}
-            style={{
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1'
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
-          <label style={{ fontSize: '14px', color: '#64748b' }}>Imagen URL</label>
-          <input
-            type="text"
-            value={formData.imagen_url}
-            onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
-            placeholder="Ingrese URL de la imagen"
-            disabled={mutation.isPending}
-            style={{
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1'
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
-          <label style={{ fontSize: '14px', color: '#64748b' }}>Código de Barra (Opcional para productos sueltos)</label>
-          <input
-            type="text"
-            value={formData.codigo_barra}
-            onChange={(e) => setFormData({ ...formData, codigo_barra: e.target.value })}
-            onKeyDown={handleEnterKey}  // Aquí estamos interceptando la tecla "Enter"
-            placeholder="Escanee o deje en blanco"
-            disabled={mutation.isPending}
-            style={{
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1'
-            }}
-          />
-        </div>
+            <input
+              type={field.type}
+              value={formData[field.key as keyof typeof formData]}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  [field.key]: e.target.value
+                })
+              }
+              placeholder={field.placeholder}
+              disabled={mutation.isPending}
+              style={inputStyle}
+            />
+          </div>
+        ))}
 
         <button
           type="submit"
           disabled={mutation.isPending}
           style={{
-            padding: '10px 20px',
-            backgroundColor: mutation.isPending ? '#ccc' : '#007bff',
+            marginTop: '10px',
+            padding: '14px',
+            backgroundColor: mutation.isPending ? '#94a3b8' : '#2563eb',
             color: 'white',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '8px',
             cursor: mutation.isPending ? 'not-allowed' : 'pointer',
             fontWeight: 'bold',
-            width: '100%'
+            fontSize: '15px',
+            transition: 'background-color 0.2s'
           }}
         >
-          {mutation.isPending ? 'Procesando...' : 'Guardar en Inventario'}
+          {mutation.isPending ? 'Guardando...' : ' Guardar Producto'}
         </button>
       </form>
-
-      {mutation.isError && (
-        <p style={{ color: '#d9534f', fontSize: '14px', marginTop: '10px' }}>
-          ❌ Error: {(mutation.error as any)?.response?.data?.error || "No se pudo conectar con el servidor"}
-        </p>
-      )}
     </div>
   );
 };

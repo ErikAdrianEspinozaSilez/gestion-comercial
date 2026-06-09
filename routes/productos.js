@@ -71,25 +71,23 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// 3. STOCK BAJO (Alertas Automáticas del Dashboard)
+// 3. STOCK BAJO (Alertas Automáticas - Ahora con Estante y Bodega)
 router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
       SELECT 
-        p.producto_id, p.nombre_producto, p.codigo_barra, p.imagen_url,
-        (COALESCE(SUM(CASE WHEN t.signo = 1 THEN m.cantidad ELSE 0 END), 0) - 
-         COALESCE(SUM(CASE WHEN t.signo = -1 THEN m.cantidad ELSE 0 END), 0)) AS stock_total
+        p.producto_id, 
+        p.nombre_producto, 
+        p.codigo_barra, 
+        p.stock_bodega, 
+        p.stock_estante,
+        (p.stock_bodega + p.stock_estante) AS stock_total
       FROM gestion_comercial.dim_producto p
-      LEFT JOIN gestion_comercial.fact_movimiento_inventario m ON p.producto_id = m.producto_id
-      LEFT JOIN gestion_comercial.dim_tipo_movimiento t ON m.tipo_movimiento_id = t.tipo_movimiento_id
-      WHERE p.activo = TRUE
-      GROUP BY p.producto_id, p.nombre_producto, p.codigo_barra, p.imagen_url
-      HAVING (COALESCE(SUM(CASE WHEN t.signo = 1 THEN m.cantidad ELSE 0 END), 0) - 
-              COALESCE(SUM(CASE WHEN t.signo = -1 THEN m.cantidad ELSE 0 END), 0)) < 5;
+      WHERE p.activo = TRUE 
+      AND (p.stock_estante < 5 OR p.stock_bodega < 5)
     `;
 
     const result = await pool.query(query);
-
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

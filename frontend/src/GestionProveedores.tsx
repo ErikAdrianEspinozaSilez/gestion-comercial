@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const GestionProveedores: React.FC = () => {
   const queryClient = useQueryClient();
-  
-  // Estados del formulario
+
   const [formData, setFormData] = useState({
     razon_social: '',
     nit: '',
@@ -13,218 +13,491 @@ const GestionProveedores: React.FC = () => {
     telefono_principal: ''
   });
 
-  const [selectedProds, setSelectedProds] = useState<number[]>([]); // Productos seleccionados
-
-  // NUEVOS ESTADOS PARA EDICIÓN
+  const [selectedProds, setSelectedProds] = useState<number[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
 
-  // Obtener lista de productos
+  // Buscador y apertura del selector de productos relacionados
+  const [busquedaProducto, setBusquedaProducto] = useState('');
+  const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(false);
+
   const { data: listaProductos } = useQuery({
     queryKey: ['productos'],
-    queryFn: async () => {
-      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/productos');
-      return response.data;
-    }
+    queryFn: async () =>
+      (await axios.get('https://gestion-comercial-j3ed.onrender.com/productos')).data
   });
 
-  // Obtener proveedores
   const { data: proveedores, isLoading } = useQuery({
     queryKey: ['proveedores'],
-    queryFn: async () => {
-      const response = await axios.get('https://gestion-comercial-j3ed.onrender.com/api/proveedores');
-      return response.data;
-    }
+    queryFn: async () =>
+      (await axios.get('https://gestion-comercial-j3ed.onrender.com/api/proveedores')).data
   });
 
-  // MUTACIÓN: POST o PUT según isEditing
   const mutation = useMutation({
-    mutationFn: (data: any) => {
-      if (isEditing && currentId) {
-        return axios.put(`https://gestion-comercial-j3ed.onrender.com/api/proveedores/${currentId}`, data);
-      }
-      return axios.post('https://gestion-comercial-j3ed.onrender.com/api/proveedores', data);
-    },
+    mutationFn: (data: any) =>
+      isEditing
+        ? axios.put(`https://gestion-comercial-j3ed.onrender.com/api/proveedores/${currentId}`, data)
+        : axios.post('https://gestion-comercial-j3ed.onrender.com/api/proveedores', data),
+
     onSuccess: () => {
-      alert(isEditing ? "✅ Proveedor actualizado" : "✅ Proveedor registrado");
+      toast.success(isEditing ? "Proveedor actualizado" : "Proveedor registrado");
       cancelarEdicion();
       queryClient.invalidateQueries({ queryKey: ['proveedores'] });
     },
+
     onError: () => {
-      alert("❌ Error al guardar proveedor. Verifica el servidor.");
+      toast.error("Error al guardar.");
     }
   });
 
-  // Toggle checkbox productos
   const toggleProducto = (id: number) => {
-    setSelectedProds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+    setSelectedProds(prev =>
+      prev.includes(id)
+        ? prev.filter(p => p !== id)
+        : [...prev, id]
+    );
   };
 
-  // ENVIAR FORMULARIO
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formData.razon_social || !formData.correo_principal) {
-      alert("Por favor, completa los campos obligatorios.");
+      toast.error("Completa campos obligatorios");
       return;
     }
-    mutation.mutate({ ...formData, productos_ids: selectedProds });
+
+    mutation.mutate({
+      ...formData,
+      productos_ids: selectedProds
+    });
   };
 
-  // PREPARAR EDICIÓN
   const prepararEdicion = (prov: any) => {
     setIsEditing(true);
     setCurrentId(prov.proveedor_id);
+
     setFormData({
       razon_social: prov.razon_social,
       nit: prov.nit || '',
       correo_principal: prov.correo_principal,
       telefono_principal: prov.telefono_principal || ''
     });
-    // Si el backend devuelve IDs de productos vinculados, los usamos
+
     setSelectedProds(prov.productos_ids || []);
+    setBusquedaProducto('');
+    setMostrarSelectorProductos(false);
   };
 
-  // CANCELAR EDICIÓN
   const cancelarEdicion = () => {
     setIsEditing(false);
     setCurrentId(null);
-    setFormData({ razon_social: '', nit: '', correo_principal: '', telefono_principal: '' });
+
+    setFormData({
+      razon_social: '',
+      nit: '',
+      correo_principal: '',
+      telefono_principal: ''
+    });
+
     setSelectedProds([]);
+    setBusquedaProducto('');
+    setMostrarSelectorProductos(false);
   };
+
+  const productosFiltrados = listaProductos?.filter((p: any) => {
+    const termino = busquedaProducto.toLowerCase();
+
+    return (
+      p.nombre_producto?.toLowerCase().includes(termino) ||
+      p.codigo_barra?.toLowerCase().includes(termino)
+    );
+  });
 
   if (isLoading) return <p>Cargando proveedores...</p>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
       {/* FORMULARIO */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ marginTop: 0, color: '#1e293b' }}>
-          {isEditing ? '✏️ Editar Proveedor' : '➕ Registrar Nuevo Proveedor'}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '25px',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+        borderLeft: '6px solid #2563eb'
+      }}>
+        <h3 style={{
+          marginTop: 0,
+          color: '#1e293b',
+          marginBottom: '20px'
+        }}>
+          {isEditing ? '✏️ Editar Proveedor' : '➕ Registrar Proveedor'}
         </h3>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-          {/* Inputs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '14px', color: '#64748b' }}>Razón Social *</label>
-            <input 
-              type="text" 
-              placeholder="Ej: Coca Cola S.A." 
-              value={formData.razon_social}
-              onChange={(e) => setFormData({...formData, razon_social: e.target.value})}
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '14px', color: '#64748b' }}>NIT / Documento</label>
-            <input 
-              type="text" 
-              placeholder="NIT del proveedor" 
-              value={formData.nit}
-              onChange={(e) => setFormData({...formData, nit: e.target.value})}
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '14px', color: '#64748b' }}>Correo Electrónico *</label>
-            <input 
-              type="email" 
-              placeholder="ventas@proveedor.com" 
-              value={formData.correo_principal}
-              onChange={(e) => setFormData({...formData, correo_principal: e.target.value})}
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '14px', color: '#64748b' }}>Teléfono de Contacto</label>
-            <input 
-              type="text" 
-              placeholder="Ej: 44223344" 
-              value={formData.telefono_principal}
-              onChange={(e) => setFormData({...formData, telefono_principal: e.target.value})}
-              style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
 
-          {/* Checkbox Productos */}
-          <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
-            <label style={{ fontSize: '14px', color: '#64748b', marginBottom: '5px', display: 'block' }}>
-              Relacionar con Productos Existentes:
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '150px', overflowY: 'auto', border: '1px solid #e2e8f0', padding: '10px', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
-              {listaProductos?.map((p: any) => (
-                <label key={p.producto_id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedProds.includes(p.producto_id)}
-                    onChange={() => toggleProducto(p.producto_id)}
-                  />
-                  <span>{p.nombre_producto}</span>
-                </label>
-              ))}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '15px'
+          }}
+        >
+          {[
+            { label: 'Razón Social', key: 'razon_social' },
+            { label: 'NIT', key: 'nit' },
+            { label: 'Correo Principal', key: 'correo_principal' },
+            { label: 'Teléfono Principal', key: 'telefono_principal' }
+          ].map(field => (
+            <div
+              key={field.key}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '5px'
+              }}
+            >
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#64748b'
+              }}>
+                {field.label}
+              </label>
+
+              <input
+                type="text"
+                value={formData[field.key as keyof typeof formData]}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    [field.key]: e.target.value
+                  })
+                }
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  outline: 'none'
+                }}
+              />
             </div>
+          ))}
+
+          {/* PRODUCTOS RELACIONADOS COMPACTO */}
+          <div style={{ gridColumn: '1/-1' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginBottom: '8px'
+            }}>
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '700',
+                color: '#64748b'
+              }}>
+                Productos Relacionados:
+              </label>
+
+              <span style={{
+                fontSize: '12px',
+                backgroundColor: '#eff6ff',
+                color: '#2563eb',
+                padding: '4px 9px',
+                borderRadius: '999px',
+                fontWeight: 'bold'
+              }}>
+                {selectedProds.length} seleccionados
+              </span>
+            </div>
+
+            <input
+              type="text"
+              value={busquedaProducto}
+              onClick={() => setMostrarSelectorProductos(true)}
+              onFocus={() => setMostrarSelectorProductos(true)}
+              onChange={(e) => {
+                setBusquedaProducto(e.target.value);
+                setMostrarSelectorProductos(true);
+              }}
+              placeholder="🔍 Presiona aquí para buscar y agregar productos..."
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                outline: 'none',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+                marginBottom: mostrarSelectorProductos ? '8px' : '0'
+              }}
+            />
+
+            {mostrarSelectorProductos && (
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                maxHeight: '180px',
+                overflowY: 'auto'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  backgroundColor: '#f8fafc',
+                  borderBottom: '1px solid #e2e8f0'
+                }}>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#64748b',
+                    fontWeight: '600'
+                  }}>
+                    Selecciona productos
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSelectorProductos(false)}
+                    style={{
+                      border: 'none',
+                      backgroundColor: '#fee2e2',
+                      color: '#ef4444',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+
+                {productosFiltrados?.length > 0 ? (
+                  productosFiltrados.map((p: any) => {
+                    const seleccionado = selectedProds.includes(p.producto_id);
+
+                    return (
+                      <div
+                        key={p.producto_id}
+                        onClick={() => toggleProducto(p.producto_id)}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '34px 1fr auto',
+                          gap: '10px',
+                          alignItems: 'center',
+                          padding: '8px 10px',
+                          borderBottom: '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          backgroundColor: seleccionado ? '#eff6ff' : '#ffffff'
+                        }}
+                      >
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '7px',
+                          backgroundColor: '#e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden'
+                        }}>
+                          {p.imagen_url && !p.imagen_url.includes('via.placeholder.com') ? (
+                            <img
+                              src={p.imagen_url}
+                              alt={p.nombre_producto}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '16px' }}>📦</span>
+                          )}
+                        </div>
+
+                        <div>
+                          <div style={{
+                            fontWeight: '700',
+                            color: '#1e293b',
+                            fontSize: '13px'
+                          }}>
+                            {p.nombre_producto}
+                          </div>
+
+                          <div style={{
+                            fontSize: '11px',
+                            color: '#64748b',
+                            marginTop: '2px'
+                          }}>
+                            Código: {p.codigo_barra || 'Sin código'} · Stock: {p.stock_total || 0}
+                          </div>
+                        </div>
+
+                        <input
+                          type="checkbox"
+                          checked={seleccionado}
+                          onChange={() => toggleProducto(p.producto_id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            cursor: 'pointer'
+                          }}
+                        />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{
+                    padding: '15px',
+                    textAlign: 'center',
+                    color: '#64748b',
+                    fontSize: '13px'
+                  }}>
+                    No se encontraron productos.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={mutation.isPending}
-            style={{ 
-              gridColumn: 'span 2', 
-              backgroundColor: isEditing ? '#f59e0b' : '#007bff', 
-              color: 'white', 
-              padding: '12px', 
-              border: 'none', 
-              borderRadius: '8px', 
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              marginTop: '10px'
+            style={{
+              gridColumn: '1/-1',
+              padding: '12px',
+              backgroundColor: mutation.isPending ? '#94a3b8' : '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
             }}
           >
-            {mutation.isPending ? 'Guardando...' : isEditing ? '💾 Actualizar Proveedor' : '💾 Guardar Proveedor'}
+            {mutation.isPending
+              ? 'Guardando...'
+              : isEditing
+                ? ' Actualizar'
+                : ' Guardar'}
           </button>
+
           {isEditing && (
-            <button 
+            <button
               type="button"
               onClick={cancelarEdicion}
-              style={{ gridColumn: 'span 2', backgroundColor: '#6b7280', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '5px' }}
+              style={{
+                gridColumn: '1/-1',
+                padding: '10px',
+                backgroundColor: '#94a3b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
             >
-              ❌ Cancelar Edición
+              Cancelar
             </button>
           )}
         </form>
       </div>
 
-      {/* TABLA PROVEEDORES */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ marginTop: 0, color: '#1e293b' }}>📋 Directorio de Proveedores</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+      {/* TABLA */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+        overflowX: 'auto'
+      }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          minWidth: '600px'
+        }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9' }}>
-              <th style={{ padding: '12px', color: '#475569' }}>Razón Social</th>
-              <th style={{ padding: '12px', color: '#475569' }}>NIT</th>
-              <th style={{ padding: '12px', color: '#475569' }}>Correo</th>
-              <th style={{ padding: '12px', color: '#475569' }}>Teléfono</th>
-              <th style={{ padding: '12px', color: '#475569' }}>Productos Vinculados</th>
-              <th style={{ padding: '12px', color: '#475569' }}>Acciones</th>
+            <tr style={{
+              textAlign: 'left',
+              backgroundColor: '#f8fafc',
+              borderBottom: '2px solid #e2e8f0'
+            }}>
+              {['Razón Social', 'NIT', 'Correo', 'Teléfono', 'Productos', 'Acciones'].map(h => (
+                <th
+                  key={h}
+                  style={{
+                    padding: '15px',
+                    color: '#475569',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
+
           <tbody>
             {proveedores?.map((prov: any) => (
-              <tr key={prov.proveedor_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '12px', fontWeight: '500' }}>{prov.razon_social}</td>
-                <td style={{ padding: '12px', color: '#64748b' }}>{prov.nit || 'S/N'}</td>
-                <td style={{ padding: '12px', color: '#007bff' }}>{prov.correo_principal}</td>
-                <td style={{ padding: '12px', color: '#64748b' }}>{prov.telefono_principal || '---'}</td>
-                <td style={{ padding: '12px' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {prov.productos.map((nom: string, i: number) => (
-                      <span key={i} style={{ backgroundColor: '#e0f2fe', color: '#0369a1', fontSize: '12px', padding: '2px 6px', borderRadius: '4px' }}>{nom}</span>
-                    ))}
-                  </div>
+              <tr
+                key={prov.proveedor_id}
+                style={{ borderBottom: '1px solid #f1f5f9' }}
+              >
+                <td style={{ padding: '15px', fontWeight: '600' }}>
+                  {prov.razon_social}
                 </td>
-                <td style={{ padding: '12px' }}>
-                  <button 
+
+                <td style={{ padding: '15px' }}>
+                  {prov.nit}
+                </td>
+
+                <td style={{ padding: '15px', color: '#2563eb' }}>
+                  {prov.correo_principal}
+                </td>
+
+                <td style={{ padding: '15px' }}>
+                  {prov.telefono_principal}
+                </td>
+
+                <td style={{ padding: '15px' }}>
+                  {prov.productos?.map((n: string, i: number) => (
+                    <span
+                      key={i}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        backgroundColor: '#e0f2fe',
+                        color: '#0369a1',
+                        margin: '2px',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {n}
+                    </span>
+                  ))}
+                </td>
+
+                <td style={{ padding: '15px' }}>
+                  <button
                     onClick={() => prepararEdicion(prov)}
-                    style={{ backgroundColor: '#ffc107', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                    style={{
+                      backgroundColor: '#f59e0b',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
                   >
                     ✏️ Editar
                   </button>

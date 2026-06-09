@@ -44,7 +44,7 @@ const RegistrarMovimiento: React.FC = () => {
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: '4px solid #3b82f6' }}>
-      <h3 style={{ marginTop: 0, color: '#1e293b' }}>📦 Gestión Rápida de Stock</h3>
+      <h3 style={{ marginTop: 0, color: '#1e293b' }}> Gestión Rápida de Stock</h3>
       <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '15px' }}>
         Registra compras o mueve mercadería al área de ventas.
       </p>
@@ -99,7 +99,7 @@ const RegistrarMovimiento: React.FC = () => {
             transition: 'background-color 0.3s'
           }}
         >
-          {tipo === 'traspaso_estante' ? '🔄 Confirmar Traspaso' : '💾 Guardar Registro'}
+          {tipo === 'traspaso_estante' ? '🔄 Confirmar Traspaso' : ' Guardar Registro'}
         </button>
       </form>
     </div>
