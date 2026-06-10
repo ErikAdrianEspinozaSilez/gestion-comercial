@@ -76,6 +76,7 @@ router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
       SELECT
+       'NUEVA_VERSION' AS version,
         p.producto_id,
         p.nombre_producto,
         p.codigo_barra,
