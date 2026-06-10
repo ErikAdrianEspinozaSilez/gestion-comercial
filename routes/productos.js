@@ -76,111 +76,34 @@ router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
       SELECT
-       'NUEVA_VERSION' AS version,
-        p.producto_id,
-        p.nombre_producto,
-        p.codigo_barra,
-        p.imagen_url,
+        producto_id,
+        nombre_producto,
+        codigo_barra,
+        imagen_url,
+        stock_bodega,
+        stock_estante,
+        (stock_bodega + stock_estante) AS stock_total,
 
-        (
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = 1 AND m.ubicacion_id = 1
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-          -
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = -1 AND m.ubicacion_id = 1
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-        ) AS stock_bodega,
+        CASE
+          WHEN stock_bodega < 5 THEN 'PROVEEDOR'
+          WHEN stock_estante < 2 THEN 'REPOSICION'
+        END AS tipo_alerta
 
-        (
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = 1 AND m.ubicacion_id = 2
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-          -
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = -1 AND m.ubicacion_id = 2
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-        ) AS stock_estante,
-
-        (
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = 1
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-          -
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = -1
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-        ) AS stock_total
-
-      FROM gestion_comercial.dim_producto p
-      LEFT JOIN gestion_comercial.fact_movimiento_inventario m
-        ON p.producto_id = m.producto_id
-      LEFT JOIN gestion_comercial.dim_tipo_movimiento t
-        ON m.tipo_movimiento_id = t.tipo_movimiento_id
-
-      WHERE p.activo = TRUE
-
-      GROUP BY
-        p.producto_id,
-        p.nombre_producto,
-        p.codigo_barra,
-        p.imagen_url
-
-      HAVING
-        (
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = 1 AND m.ubicacion_id = 2
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-          -
-          COALESCE(SUM(
-            CASE
-              WHEN t.signo = -1 AND m.ubicacion_id = 2
-              THEN m.cantidad
-              ELSE 0
-            END
-          ),0)
-        ) < 5
-
-      ORDER BY p.nombre_producto;
+      FROM gestion_comercial.dim_producto
+      WHERE activo = TRUE
+      AND (
+        stock_bodega < 5
+        OR stock_estante < 2
+      );
     `;
 
     const result = await pool.query(query);
-
     res.json(result.rows);
-
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
-});// 4. CONSULTA DE TODOS LOS PRODUCTOS (Para la tabla de inventario con Ubicaciones)
+});
+// 4. CONSULTA DE TODOS LOS PRODUCTOS (Para la tabla de inventario con Ubicaciones)
 router.get('/', async (req, res) => {
   try {
     const query = `

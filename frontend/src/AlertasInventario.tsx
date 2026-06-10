@@ -94,19 +94,16 @@ const AlertasInventario: React.FC = () => {
       </h4>
 
 <div style={{ marginTop: '10px' }}>
-  {stockBajo.map((p: any) => {
+{stockBajo.map((p: any) => {
 
-    console.log(
-      p.nombre_producto,
-      'Bodega:',
-      p.stock_bodega,
-      'Estante:',
-      p.stock_estante,
-      'Total:',
-      p.stock_total
-    );
+  console.log(
+    p.nombre_producto,
+    p.stock_bodega,
+    p.stock_estante,
+    p.stock_total
+  );
 
-    return (
+  return (
       <div
         key={p.producto_id}
               style={{
@@ -129,24 +126,15 @@ const AlertasInventario: React.FC = () => {
               >
                 <strong>{p.nombre_producto}</strong>
 
-                <span style={{ marginLeft: '10px' }}>
-                  Estante:{' '}
-                  <b
-                    style={{
-                      color:
-                        Number(p.stock_estante) < 5
-                          ? '#dc3545'
-                          : 'inherit',
-                    }}
-                  >
-                    {p.stock_estante}
-                  </b>
-                </span>
-
-                <span style={{ marginLeft: '10px' }}>
-                  Total: <b>{p.stock_total}</b>
-                </span>
-              </div>
+{p.tipo_alerta === 'REPOSICION' ? (
+  <span style={{ color: '#fd7e14' }}>
+    ⚠️ Reponer desde bodega al estante
+  </span>
+) : (
+  <span style={{ color: '#dc3545' }}>
+    🚨 Comprar al proveedor
+  </span>
+)}            </div>
 
               <button
                 onClick={() => handleNotificarClick(p)}
