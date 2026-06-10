@@ -72,7 +72,13 @@ const AlertasInventario: React.FC = () => {
   };
 
   if (!stockBajo || stockBajo.length === 0) return null;
+const reposicion = stockBajo.filter(
+  (p: any) => p.tipo_alerta === 'REPOSICION'
+);
 
+const proveedor = stockBajo.filter(
+  (p: any) => p.tipo_alerta === 'PROVEEDOR'
+);
   return (
     <div
       style={{
@@ -94,69 +100,96 @@ const AlertasInventario: React.FC = () => {
       </h4>
 
 <div style={{ marginTop: '10px' }}>
-{stockBajo.map((p: any) => {
+  {reposicion.length > 0 && (
+    <>
+      <h5
+        style={{
+          color: '#fd7e14',
+          marginBottom: '8px',
+        }}
+      >
+        ⚠️ Reponer Estantes
+      </h5>
 
-  console.log(
-    p.nombre_producto,
-    p.stock_bodega,
-    p.stock_estante,
-    p.stock_total
-  );
+      {reposicion.map((p: any) => (
+        <div
+          key={p.producto_id}
+          style={{
+            padding: '4px 0',
+            fontSize: '14px',
+            color: '#856404',
+          }}
+        >
+          <strong>{p.nombre_producto}</strong>
+          {' '}
+          🏪{p.stock_estante}
+          {' | '}
+          📦{p.stock_bodega}
+        </div>
+      ))}
+    </>
+  )}
 
-  return (
-      <div
-        key={p.producto_id}
-              style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #ffeeba',
-                borderRadius: '6px',
-                padding: '10px',
-                marginBottom: '8px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '10px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '14px',
-                  color: '#856404',
-                }}
-              >
-                <strong>{p.nombre_producto}</strong>
+  {proveedor.length > 0 && (
+    <>
+      <hr
+        style={{
+          margin: '12px 0',
+          borderColor: '#ffeeba',
+        }}
+      />
 
-{p.tipo_alerta === 'REPOSICION' ? (
-  <span style={{ color: '#fd7e14' }}>
-    ⚠️ Reponer desde bodega al estante
-  </span>
-) : (
-  <span style={{ color: '#dc3545' }}>
-    🚨 Comprar al proveedor
-  </span>
-)}            </div>
+      <h5
+        style={{
+          color: '#dc3545',
+          marginBottom: '8px',
+        }}
+      >
+        🚨 Notificar Proveedor
+      </h5>
 
-              <button
-                onClick={() => handleNotificarClick(p)}
-                disabled={mutation.isPending}
-                style={{
-                  backgroundColor: '#0d6efd',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  padding: '7px 10px',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                📧 Notificar
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      {proveedor.map((p: any) => (
+        <div
+          key={p.producto_id}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '14px',
+              color: '#856404',
+            }}
+          >
+            <strong>{p.nombre_producto}</strong>
+            {' '}
+            📦{p.stock_bodega}
+            {' | '}
+            🔢{p.stock_total}
+          </span>
 
+          <button
+            onClick={() => handleNotificarClick(p)}
+            disabled={mutation.isPending}
+            style={{
+              backgroundColor: '#0d6efd',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '5px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            📧 Notificar
+          </button>
+        </div>
+      ))}
+    </>
+  )}
+</div>
       <ModalComunicacion
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
