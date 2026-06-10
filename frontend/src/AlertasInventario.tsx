@@ -42,21 +42,18 @@ const AlertasInventario: React.FC = () => {
   });
 
   const handleNotificarClick = (producto: any) => {
-    const stockReal = producto.stock_actual ?? producto.stock_total ?? 0;
+    const stockReal = producto.stock_total ?? 0;
     const provId = producto.proveedor_id ?? 1;
 
     setSelectedData({
       producto_id: producto.producto_id,
       nombre_producto: producto.nombre_producto,
-
       cantidad_actual: Number(stockReal),
       stock_actual: Number(stockReal),
-
       stock_minimo: producto.stock_minimo ?? 5,
       correo_principal:
         producto.correo_principal ||
         'cb.erik.espinoza.s@upds.net.bo',
-
       proveedor_id: Number(provId),
       codigo_barra: producto.codigo_barra || '',
     });
@@ -96,14 +93,22 @@ const AlertasInventario: React.FC = () => {
         ⚠️ Alerta de Reabastecimiento
       </h4>
 
-      <div style={{ marginTop: '10px' }}>
-        {stockBajo.map((p: any) => {
-          const stockMostrar =
-            p.stock_actual ?? p.stock_total ?? 0;
+<div style={{ marginTop: '10px' }}>
+  {stockBajo.map((p: any) => {
 
-          return (
-            <div
-              key={`${p.producto_id}-${stockMostrar}`}
+    console.log(
+      p.nombre_producto,
+      'Bodega:',
+      p.stock_bodega,
+      'Estante:',
+      p.stock_estante,
+      'Total:',
+      p.stock_total
+    );
+
+    return (
+      <div
+        key={p.producto_id}
               style={{
                 backgroundColor: '#ffffff',
                 border: '1px solid #ffeeba',
@@ -120,28 +125,26 @@ const AlertasInventario: React.FC = () => {
                 style={{
                   fontSize: '14px',
                   color: '#856404',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
                 }}
               >
                 <strong>{p.nombre_producto}</strong>
 
-                <span>
-                  📦 Bodega:{' '}
-                  <strong>{p.stock_bodega ?? 0}</strong>
-                  {' | '}
-                  🏪 Estante:{' '}
-                  <strong>{p.stock_estante ?? 0}</strong>
+                <span style={{ marginLeft: '10px' }}>
+                  Estante:{' '}
+                  <b
+                    style={{
+                      color:
+                        Number(p.stock_estante) < 5
+                          ? '#dc3545'
+                          : 'inherit',
+                    }}
+                  >
+                    {p.stock_estante}
+                  </b>
                 </span>
 
-                <span>
-                  🔢 Total:{' '}
-                  <strong style={{ color: '#dc3545' }}>
-                    {Number(
-                      p.stock_total ?? stockMostrar
-                    ).toFixed(0)}
-                  </strong>
+                <span style={{ marginLeft: '10px' }}>
+                  Total: <b>{p.stock_total}</b>
                 </span>
               </div>
 
@@ -159,7 +162,7 @@ const AlertasInventario: React.FC = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                📧 Notificar Proveedor
+                📧 Notificar
               </button>
             </div>
           );

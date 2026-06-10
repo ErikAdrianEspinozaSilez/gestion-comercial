@@ -24,7 +24,10 @@ function App() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) setMenuOpen(false);
+
+      if (window.innerWidth >= 768) {
+        setMenuOpen(false);
+      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -47,7 +50,9 @@ function App() {
     gap: '12px',
     fontWeight: isActive ? '600' : '400',
     transition: 'all 0.2s ease',
-    borderLeft: isActive ? '4px solid #38bdf8' : '4px solid transparent',
+    borderLeft: isActive
+      ? '4px solid #38bdf8'
+      : '4px solid transparent',
   });
 
   return (
@@ -114,7 +119,9 @@ function App() {
             flexDirection: 'column',
             zIndex: 90,
             paddingTop: '20px',
-            boxShadow: isMobile ? 'none' : '4px 0 10px rgba(0,0,0,0.1)',
+            boxShadow: isMobile
+              ? 'none'
+              : '4px 0 10px rgba(0,0,0,0.1)',
           }}
         >
           {!isMobile && (
@@ -171,7 +178,6 @@ function App() {
               💳 Punto Venta
             </NavLink>
 
-            {/* Inventario disponible para todos los usuarios */}
             <NavLink
               to="/inventario"
               onClick={() => setMenuOpen(false)}
@@ -219,11 +225,6 @@ function App() {
             )}
           </div>
 
-          {/* Alertas globales */}
-          <div style={{ display: 'none' }}>
-            <AlertasInventario />
-          </div>
-
           <div style={{ padding: '20px' }}>
             <button
               onClick={logout}
@@ -264,10 +265,14 @@ function App() {
                 >
                   <DashboardVentas />
 
+                  {/* ALERTAS VISIBLES */}
+                  <AlertasInventario />
+
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                      gridTemplateColumns:
+                        isMobile ? '1fr' : '1fr 1fr',
                       gap: '20px',
                     }}
                   >
