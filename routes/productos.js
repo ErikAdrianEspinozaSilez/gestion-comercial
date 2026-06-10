@@ -72,10 +72,15 @@ router.get('/stats', async (req, res) => {
 });
 
 // 3. STOCK BAJO (Alertas Automáticas)
+// 3. STOCK BAJO (Alertas Automáticas) - versión corregida
 router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
-      SELECT *
+      SELECT *,
+        CASE
+          WHEN stock_bodega < 5 THEN 'PROVEEDOR'
+          WHEN stock_estante < 2 THEN 'REPOSICION'
+        END AS tipo_alerta
       FROM (
         SELECT 
           p.producto_id,
@@ -109,14 +114,12 @@ router.get('/stock-bajo', async (req, res) => {
         WHERE p.activo = TRUE
         GROUP BY p.producto_id
       ) AS inventario
-      WHERE stock_bodega < 5
-         OR stock_estante < 2
+      WHERE stock_bodega < 5 OR stock_estante < 2
       ORDER BY producto_id DESC
     `;
 
     const result = await pool.query(query);
     res.json(result.rows);
-
   } catch (err) {
     console.error("❌ ERROR EN STOCK BAJO:", err.message);
     res.status(500).json({ error: err.message });
