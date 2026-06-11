@@ -74,15 +74,15 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// 3. STOCK BAJO (Alertas Automáticas)
+// 3. STOCK BAJO (Alertas Automáticas) - versión con alertas múltiples
 router.get('/stock-bajo', async (req, res) => {
   try {
     const query = `
       SELECT *,
-        CASE
-          WHEN stock_estante < 2 THEN 'REPOSICION'
-          WHEN stock_bodega < 5 THEN 'PROVEEDOR'
-        END AS tipo_alerta
+        ARRAY[
+          CASE WHEN stock_estante < 2 THEN 'REPOSICION' END,
+          CASE WHEN stock_bodega < 5 THEN 'PROVEEDOR' END
+        ]::text[] AS alertas
       FROM (
         SELECT 
           p.producto_id,

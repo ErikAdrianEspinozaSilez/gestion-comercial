@@ -73,11 +73,11 @@ const AlertasInventario: React.FC = () => {
 
   if (!stockBajo || stockBajo.length === 0) return null;
 const reposicion = stockBajo.filter(
-  (p: any) => p.tipo_alerta === 'REPOSICION'
+  (p: any) => p.alertas.includes('REPOSICION')
 );
 
 const proveedor = stockBajo.filter(
-  (p: any) => p.tipo_alerta === 'PROVEEDOR'
+  (p: any) => p.alertas.includes('PROVEEDOR')
 );
   return (
     <div
