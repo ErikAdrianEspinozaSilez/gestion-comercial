@@ -3,13 +3,19 @@ const express = require('express');
 const router = express.Router();
 
 const pool = require('../db');
-// 1. Obtener todos los usuarios activos
+
+// 1. Obtener todos los usuarios, activos e inactivos
 router.get('/', async (req, res) => {
   try {
     const query = `
-      SELECT usuario_id, nombre_completo, usuario_login, correo, rol_id 
-      FROM gestion_comercial.dim_usuario 
-      WHERE activo = true 
+      SELECT 
+        usuario_id, 
+        nombre_completo, 
+        usuario_login, 
+        correo, 
+        rol_id,
+        activo
+      FROM gestion_comercial.dim_usuario
       ORDER BY usuario_id ASC
     `;
 
@@ -22,9 +28,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. Crear un nuevo usuario
+// 2. Crear un nuevo usuario activo
 router.post('/', async (req, res) => {
-  // AHORA INCLUIMOS EL CORREO
   const { nombre_completo, usuario_login, correo, password, rol_id } = req.body;
 
   try {
@@ -32,7 +37,7 @@ router.post('/', async (req, res) => {
       INSERT INTO gestion_comercial.dim_usuario 
       (nombre_completo, usuario_login, correo, password, rol_id, activo) 
       VALUES ($1, $2, $3, $4, $5, true) 
-      RETURNING usuario_id, nombre_completo, usuario_login, correo, rol_id
+      RETURNING usuario_id, nombre_completo, usuario_login, correo, rol_id, activo
     `;
 
     const result = await pool.query(query, [
@@ -50,19 +55,58 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 3. Eliminar usuario (Borrado lógico, muy profesional)
+// 3. Dar de baja usuario
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query(
-      'UPDATE gestion_comercial.dim_usuario SET activo = false WHERE usuario_id = $1',
-      [id]
-    );
+    const query = `
+      UPDATE gestion_comercial.dim_usuario
+      SET activo = false
+      WHERE usuario_id = $1
+      RETURNING usuario_id, nombre_completo, usuario_login, correo, rol_id, activo
+    `;
 
-    res.json({ message: 'Usuario dado de baja exitosamente' });
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    res.json({
+      message: 'Usuario dado de baja exitosamente',
+      usuario: result.rows[0]
+    });
   } catch (err) {
     console.error("Error en DELETE /usuarios:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Activar usuario nuevamente
+router.put('/:id/activar', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const query = `
+      UPDATE gestion_comercial.dim_usuario
+      SET activo = true
+      WHERE usuario_id = $1
+      RETURNING usuario_id, nombre_completo, usuario_login, correo, rol_id, activo
+    `;
+
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    res.json({
+      message: 'Usuario activado exitosamente',
+      usuario: result.rows[0]
+    });
+  } catch (err) {
+    console.error("Error en PUT /usuarios/:id/activar:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

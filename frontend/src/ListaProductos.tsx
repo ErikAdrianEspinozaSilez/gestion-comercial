@@ -284,23 +284,26 @@ const ListaProductos: React.FC = () => {
         </table>
       </div>
 
+
 {/* MODAL DE EDICIÓN */}
 {isDetailModalOpen && (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-    backdropFilter: 'blur(4px)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-    padding: '10px',
-    boxSizing: 'border-box'
-  }}>
+  <div
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(15, 23, 42, 0.5)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      padding: '10px',
+      boxSizing: 'border-box'
+    }}
+  >
     {/* X visible para cerrar */}
     <button
       type="button"
@@ -330,34 +333,38 @@ const ListaProductos: React.FC = () => {
       ×
     </button>
 
-    <div style={{
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '20px',
-      width: '100%',
-      maxWidth: '400px',
-      boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-      borderLeft: '8px solid #2563eb'
-    }}>
-      <h4 style={{
-        margin: '0 0 20px 0',
-        fontSize: '1.4rem',
-        color: '#1e293b'
-      }}>
+    <div
+      style={{
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '20px',
+        width: '100%',
+        maxWidth: '400px',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+        borderLeft: '8px solid #2563eb'
+      }}
+    >
+      <h4
+        style={{
+          margin: '0 0 20px 0',
+          fontSize: '1.4rem',
+          color: '#1e293b'
+        }}
+      >
         Editar Producto
       </h4>
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px'
+        }}
+      >
         {[
           { label: 'Nombre', key: 'nombre_producto', type: 'text' },
           { label: 'Precio (Bs.)', key: 'precio', type: 'number' },
           { label: 'Código de Barra', key: 'codigo_barra', type: 'text' },
-          { label: 'Stock Bodega', key: 'stock_bodega', type: 'number' },
-          { label: 'Stock Estante', key: 'stock_estante', type: 'number' },
           { label: 'URL Imagen', key: 'imagen_url', type: 'text' }
         ].map((field) => (
           <div
@@ -368,11 +375,13 @@ const ListaProductos: React.FC = () => {
               gap: '5px'
             }}
           >
-            <label style={{
-              fontSize: '0.85rem',
-              fontWeight: '600',
-              color: '#64748b'
-            }}>
+            <label
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                color: '#64748b'
+              }}
+            >
               {field.label}
             </label>
 
@@ -395,14 +404,94 @@ const ListaProductos: React.FC = () => {
             />
           </div>
         ))}
+
+        {/* STOCK SOLO DE LECTURA */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px'
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '5px'
+            }}
+          >
+            <label
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                color: '#64748b'
+              }}
+            >
+              Bodega
+            </label>
+
+            <input
+              type="number"
+              value={editData.stock_bodega}
+              readOnly
+              style={{
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '14px',
+                outline: 'none',
+                backgroundColor: '#f1f5f9',
+                color: '#64748b',
+                cursor: 'not-allowed'
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '5px'
+            }}
+          >
+            <label
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                color: '#64748b'
+              }}
+            >
+              Estante
+            </label>
+
+            <input
+              type="number"
+              value={editData.stock_estante}
+              readOnly
+              style={{
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '14px',
+                outline: 'none',
+                backgroundColor: '#f1f5f9',
+                color: '#64748b',
+                cursor: 'not-allowed'
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div style={{
-        marginTop: '25px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-      }}>
+      <div
+        style={{
+          marginTop: '25px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}
+      >
         {(rol === 1 || rol === 2) && (
           <button
             onClick={() => updateMutation.mutate(editData)}
@@ -417,7 +506,7 @@ const ListaProductos: React.FC = () => {
               fontWeight: 'bold'
             }}
           >
-            {updateMutation.isPending ? 'Guardando...' : ' Guardar Cambios'}
+            {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         )}
 
@@ -440,7 +529,7 @@ const ListaProductos: React.FC = () => {
         {rol === 1 && (
           <button
             onClick={() => {
-              if (confirm("¿Eliminar producto?")) {
+              if (confirm('¿Eliminar producto?')) {
                 deleteMutation.mutate(selectedProduct.producto_id);
               }
             }}
@@ -477,17 +566,20 @@ const ListaProductos: React.FC = () => {
     </div>
   </div>
 )}
-      <ModalComunicacion
-        isOpen={isComuModalOpen}
-        onClose={() => setIsComuModalOpen(false)}
-        datosPredefinidos={{
-          ...selectedProduct,
-          correo_principal: selectedProduct?.correo_principal || 'cb.erik.espinoza.s@upds.net.bo',
-          stock_actual: selectedProduct?.stock_total || 0,
-          cantidad_actual: selectedProduct?.stock_total || 0
-        }}
-        onEnviar={handleEnviarCorreo}
-      />
+
+<ModalComunicacion
+  isOpen={isComuModalOpen}
+  onClose={() => setIsComuModalOpen(false)}
+  datosPredefinidos={{
+    ...selectedProduct,
+    correo_principal:
+      selectedProduct?.correo_principal || 'cb.erik.espinoza.s@upds.net.bo',
+    stock_actual: selectedProduct?.stock_total || 0,
+    cantidad_actual: selectedProduct?.stock_total || 0
+  }}
+  onEnviar={handleEnviarCorreo}
+/>
+
     </div>
   );
 };

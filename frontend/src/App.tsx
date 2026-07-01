@@ -15,6 +15,7 @@ import GestionProveedores from './GestionProveedores';
 import HistorialComunicaciones from './HistorialComunicaciones';
 import DashboardVentas from './DashboardVentas';
 import GestionUsuarios from './GestionUsuarios';
+import GlobalStockToasts from './GlobalStockToasts';
 
 function App() {
   const { user, logout } = useAuth();
@@ -57,7 +58,16 @@ function App() {
 
   return (
     <Router>
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 4000,
+        }}
+      />
+
+      {/* NOTIFICACIONES GLOBALES DE STOCK */}
+      <GlobalStockToasts />
 
       <div
         style={{
@@ -265,7 +275,7 @@ function App() {
                 >
                   <DashboardVentas />
 
-                  {/* ALERTAS VISIBLES */}
+                  {/* ALERTAS VISIBLES DEL PANEL */}
                   <AlertasInventario />
 
                   <div
