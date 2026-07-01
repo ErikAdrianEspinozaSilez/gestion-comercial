@@ -9,7 +9,6 @@ const GestionUsuarios: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre_completo: '',
     usuario_login: '',
-    correo: '',
     password: '',
     rol_id: 3
   });
@@ -25,6 +24,7 @@ const GestionUsuarios: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (nuevoUsuario: any) =>
       axios.post('https://gestion-comercial-j3ed.onrender.com/usuarios', nuevoUsuario),
+
     onSuccess: () => {
       toast.success('Usuario registrado correctamente', {
         icon: '✅',
@@ -40,17 +40,22 @@ const GestionUsuarios: React.FC = () => {
       setFormData({
         nombre_completo: '',
         usuario_login: '',
-        correo: '',
         password: '',
         rol_id: 3
       });
 
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
     },
-    onError: () => {
-      toast.error('No se pudo crear el usuario', {
+
+    onError: (err: any) => {
+      const mensaje =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'No se pudo crear el usuario';
+
+      toast.error(mensaje, {
         icon: '⚠️',
-        duration: 3000,
+        duration: 3500,
         style: {
           borderRadius: '12px',
           background: '#fee2e2',
@@ -62,8 +67,9 @@ const GestionUsuarios: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
+    mutationFn: (id: number | string) =>
       axios.delete(`https://gestion-comercial-j3ed.onrender.com/usuarios/${id}`),
+
     onSuccess: () => {
       toast.success('Usuario dado de baja correctamente', {
         icon: '🗑️',
@@ -79,6 +85,7 @@ const GestionUsuarios: React.FC = () => {
       setUsuarioSeleccionado(null);
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
     },
+
     onError: () => {
       toast.error('No se pudo dar de baja al usuario', {
         icon: '⚠️',
@@ -93,9 +100,81 @@ const GestionUsuarios: React.FC = () => {
     }
   });
 
+  const activarMutation = useMutation({
+    mutationFn: (id: number | string) =>
+      axios.put(`https://gestion-comercial-j3ed.onrender.com/usuarios/${id}/activar`),
+
+    onSuccess: () => {
+      toast.success('Usuario activado correctamente', {
+        icon: '✅',
+        duration: 3000,
+        style: {
+          borderRadius: '12px',
+          background: '#dcfce7',
+          color: '#166534',
+          fontWeight: '600'
+        }
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+    },
+
+    onError: () => {
+      toast.error('No se pudo activar el usuario', {
+        icon: '⚠️',
+        duration: 3000,
+        style: {
+          borderRadius: '12px',
+          background: '#fee2e2',
+          color: '#991b1b',
+          fontWeight: '600'
+        }
+      });
+    }
+  });
+
+  const mostrarAlertaError = (mensaje: string) => {
+    toast.error(mensaje, {
+      icon: '⚠️',
+      duration: 3500,
+      style: {
+        borderRadius: '12px',
+        background: '#fee2e2',
+        color: '#991b1b',
+        fontWeight: '600'
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+
+    const nombre = formData.nombre_completo.trim();
+    const usuario = formData.usuario_login.trim();
+    const password = formData.password.trim();
+
+    if (!nombre || !usuario || !password || !formData.rol_id) {
+      mostrarAlertaError('Completa nombre, usuario, contraseña y rol');
+      return;
+    }
+
+    const usuarioYaExiste = usuarios?.some(
+      (u: any) =>
+        String(u.usuario_login).trim().toLowerCase() === usuario.toLowerCase()
+    );
+
+    if (usuarioYaExiste) {
+      mostrarAlertaError('El nombre de usuario ya existe. Usa otro usuario.');
+      return;
+    }
+
+    createMutation.mutate({
+      nombre_completo: nombre,
+      usuario_login: usuario,
+      password: password,
+      rol_id: formData.rol_id,
+      correo: null
+    });
   };
 
   const confirmarBaja = () => {
@@ -178,17 +257,6 @@ const GestionUsuarios: React.FC = () => {
 
             <input
               required
-              type="email"
-              placeholder="Correo"
-              value={formData.correo}
-              onChange={(e) =>
-                setFormData({ ...formData, correo: e.target.value })
-              }
-              style={inputStyle}
-            />
-
-            <input
-              required
               type="password"
               placeholder="Contraseña"
               value={formData.password}
@@ -199,6 +267,7 @@ const GestionUsuarios: React.FC = () => {
             />
 
             <select
+              required
               value={formData.rol_id}
               onChange={(e) =>
                 setFormData({ ...formData, rol_id: Number(e.target.value) })
@@ -245,7 +314,7 @@ const GestionUsuarios: React.FC = () => {
             Lista de Usuarios
           </h3>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
             <thead>
               <tr
                 style={{
@@ -254,7 +323,7 @@ const GestionUsuarios: React.FC = () => {
                   borderBottom: '2px solid #e2e8f0'
                 }}
               >
-                {['Nombre', 'Credenciales', 'Rol', 'Acción'].map((h) => (
+                {['Nombre', 'Usuario', 'Rol', 'Estado', 'Acción'].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -272,14 +341,28 @@ const GestionUsuarios: React.FC = () => {
 
             <tbody>
               {usuarios?.map((u: any) => (
-                <tr key={u.usuario_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px', fontWeight: 'bold', color: '#1e293b' }}>
+                <tr
+                  key={u.usuario_id}
+                  style={{
+                    borderBottom: '1px solid #f1f5f9',
+                    backgroundColor: u.activo === false ? '#f1f5f9' : 'white',
+                    opacity: u.activo === false ? 0.65 : 1
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: '12px',
+                      fontWeight: 'bold',
+                      color: u.activo === false ? '#64748b' : '#1e293b'
+                    }}
+                  >
                     {u.nombre_completo}
                   </td>
 
                   <td style={{ padding: '12px', fontSize: '0.85rem' }}>
-                    <div>@{u.usuario_login}</div>
-                    <div style={{ color: '#94a3b8' }}>{u.correo}</div>
+                    <div style={{ color: u.activo === false ? '#64748b' : '#1e293b' }}>
+                      @{u.usuario_login}
+                    </div>
                   </td>
 
                   <td style={{ padding: '12px' }}>
@@ -308,21 +391,55 @@ const GestionUsuarios: React.FC = () => {
                   </td>
 
                   <td style={{ padding: '12px' }}>
-                    <button
-                      onClick={() => setUsuarioSeleccionado(u)}
+                    <span
                       style={{
-                        padding: '6px 10px',
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold'
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        backgroundColor: u.activo === false ? '#e2e8f0' : '#dcfce7',
+                        color: u.activo === false ? '#475569' : '#166534'
                       }}
                     >
-                      Baja
-                    </button>
+                      {u.activo === false ? 'Dado de baja' : 'Activo'}
+                    </span>
+                  </td>
+
+                  <td style={{ padding: '12px' }}>
+                    {u.activo === false ? (
+                      <button
+                        onClick={() => activarMutation.mutate(u.usuario_id)}
+                        disabled={activarMutation.isPending}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: activarMutation.isPending ? '#94a3b8' : '#16a34a',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: activarMutation.isPending ? 'not-allowed' : 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {activarMutation.isPending ? 'Activando...' : 'Activar'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setUsuarioSeleccionado(u)}
+                        style={{
+                          padding: '6px 10px',
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        Baja
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

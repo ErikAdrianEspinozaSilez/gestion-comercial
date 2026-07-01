@@ -28,11 +28,32 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. Crear un nuevo usuario activo
+// 2. Crear un nuevo usuario
 router.post('/', async (req, res) => {
   const { nombre_completo, usuario_login, correo, password, rol_id } = req.body;
 
   try {
+    if (!nombre_completo || !usuario_login || !password || !rol_id) {
+      return res.status(400).json({
+        error: 'Nombre, usuario, contraseña y rol son obligatorios'
+      });
+    }
+
+    const usuarioLimpio = usuario_login.trim();
+
+    const existeUsuario = await pool.query(
+      `SELECT usuario_id 
+       FROM gestion_comercial.dim_usuario
+       WHERE LOWER(usuario_login) = LOWER($1)`,
+      [usuarioLimpio]
+    );
+
+    if (existeUsuario.rows.length > 0) {
+      return res.status(409).json({
+        error: 'El nombre de usuario ya existe. Usa otro usuario.'
+      });
+    }
+
     const query = `
       INSERT INTO gestion_comercial.dim_usuario 
       (nombre_completo, usuario_login, correo, password, rol_id, activo) 
@@ -41,9 +62,9 @@ router.post('/', async (req, res) => {
     `;
 
     const result = await pool.query(query, [
-      nombre_completo,
-      usuario_login,
-      correo,
+      nombre_completo.trim(),
+      usuarioLimpio,
+      correo && correo.trim() !== '' ? correo.trim() : null,
       password,
       rol_id
     ]);
@@ -51,10 +72,16 @@ router.post('/', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Error en POST /usuarios:", err.message);
+
+    if (err.code === '23505') {
+      return res.status(409).json({
+        error: 'El nombre de usuario ya existe. Usa otro usuario.'
+      });
+    }
+
     res.status(500).json({ error: err.message });
   }
 });
-
 // 3. Dar de baja usuario
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
