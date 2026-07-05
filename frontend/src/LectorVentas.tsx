@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-
+import { toast } from 'react-hot-toast';
 const LectorVentas: React.FC = () => {
   const [codigo, setCodigo] = useState('');
   const [busquedaManual, setBusquedaManual] = useState('');
@@ -115,34 +114,63 @@ const LectorVentas: React.FC = () => {
       .toFixed(2);
   };
 
-  const finalizarVenta = async () => {
-    if (carrito.length === 0) {
-      toast.error("El carrito está vacío.");
-      return;
-    }
+const finalizarVenta = async () => {
+  if (carrito.length === 0) {
+    toast.error("El carrito está vacío", {
+      icon: '⚠️'
+    });
+    return;
+  }
 
-    try {
-      await axios.post('https://gestion-comercial-j3ed.onrender.com/productos/finalizar-venta', {
-        productos: carrito
-      });
+  try {
+    console.log("📦 Enviando venta:", carrito);
 
-      toast.success("¡Venta registrada con éxito!");
+    const res = await axios.post(
+      'https://gestion-comercial-j3ed.onrender.com/productos/finalizar-venta',
+      { productos: carrito }
+    );
 
-      setCarrito([]);
+    console.log("✅ Respuesta backend:", res.data);
 
-      queryClient.invalidateQueries({ queryKey: ['dashboard-ventas'] });
-      queryClient.invalidateQueries({ queryKey: ['movimientos'] });
-      queryClient.invalidateQueries({ queryKey: ['productos'] });
-      queryClient.invalidateQueries({ queryKey: ['productos-venta-manual'] });
+    toast.success("Venta finalizada correctamente", {
+      icon: '🎉',
+      duration: 3000,
+      style: {
+        borderRadius: '12px',
+        background: '#dcfce7',
+        color: '#166534',
+        fontWeight: '600'
+      }
+    });
 
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al finalizar la venta. Revisa la consola.");
-    }
-  };
+    setCarrito([]);
 
-  // Filtro inteligente para la búsqueda manual
+    queryClient.invalidateQueries({ queryKey: ['dashboard-ventas'] });
+    queryClient.invalidateQueries({ queryKey: ['movimientos'] });
+    queryClient.invalidateQueries({ queryKey: ['productos'] });
+    queryClient.invalidateQueries({ queryKey: ['productos-venta-manual'] });
+
+    inputRef.current?.focus();
+
+  } catch (err: any) {
+    console.error("❌ ERROR FINALIZAR VENTA:", err);
+
+    toast.error(
+      err?.response?.data?.message ||
+      "Error al finalizar venta",
+      {
+        icon: '❌',
+        duration: 3500,
+        style: {
+          borderRadius: '12px',
+          background: '#fee2e2',
+          color: '#991b1b',
+          fontWeight: '600'
+        }
+      }
+    );
+  }
+};  // Filtro inteligente para la búsqueda manual
   const productosFiltrados = productosInventario?.filter((p: any) => {
     if (!busquedaManual) return false;
 

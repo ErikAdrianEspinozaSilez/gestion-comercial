@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
@@ -29,6 +29,23 @@ const GlobalStockToasts = () => {
   const [cerradas, setCerradas] = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showExtraAlerts, setShowExtraAlerts] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
+  });
+
+  useEffect(() => {
+    const revisarPantalla = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    revisarPantalla();
+    window.addEventListener('resize', revisarPantalla);
+
+    return () => {
+      window.removeEventListener('resize', revisarPantalla);
+    };
+  }, []);
 
   const { data: stockBajo } = useQuery({
     queryKey: ['stock-bajo-global-floating'],
@@ -94,7 +111,103 @@ const GlobalStockToasts = () => {
 
   if (alertas.length === 0) return null;
 
-  return (
+  return isMobile ? (
+    <div style={{ pointerEvents: 'auto' }}>
+      {/* 🔔 CAMPANA MÓVIL */}
+      <div
+        onClick={() => setShowExtraAlerts(!showExtraAlerts)}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: '55px',
+          height: '55px',
+          borderRadius: '50%',
+          background: '#0ea5e9',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '22px',
+          fontWeight: '900',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+          zIndex: 9999,
+          cursor: 'pointer',
+        }}
+      >
+        🔔 {alertas.length}
+      </div>
+
+      {/* 📱 MODAL MOBILE */}
+      {showExtraAlerts && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 10000,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxHeight: '70vh',
+              background: '#fff',
+              borderTopLeftRadius: '20px',
+              borderTopRightRadius: '20px',
+              overflowY: 'auto',
+              padding: '15px',
+            }}
+          >
+            <div style={{ fontWeight: '900', marginBottom: '10px' }}>
+              🔴 Stock bajo
+            </div>
+
+            {alertas.map((alerta) => (
+              <div
+                key={alerta.id}
+                style={{
+                  padding: '12px',
+                  borderBottom: '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ fontWeight: '800', color: alerta.color }}>
+                  {alerta.icono} {alerta.titulo}
+                </div>
+
+                <div style={{ fontSize: '13px' }}>
+                  {alerta.producto.nombre_producto}
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  {alerta.mensaje}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => cerrarAlerta(alerta.id)}
+                  style={{
+                    marginTop: '8px',
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  ) : (
     <div
       style={{
         position: 'fixed',
@@ -279,7 +392,6 @@ const GlobalStockToasts = () => {
                     Total
                   </div>
                 </div>
-
               </>
             )}
           </div>
@@ -481,8 +593,6 @@ const GlobalStockToasts = () => {
                       Total
                     </div>
                   </div>
-
-
                 </div>
               ))}
             </div>

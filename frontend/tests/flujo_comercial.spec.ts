@@ -1,29 +1,44 @@
 import { test, expect } from '@playwright/test';
 
 test('Prueba simplificada de venta', async ({ page }) => {
+
   await page.goto('http://localhost:5173/');
 
-  // LOGIN
+  // 🔐 LOGIN
   await page.getByRole('textbox', { name: 'Usuario' }).fill('admin');
   await page.getByRole('textbox', { name: 'Contraseña' }).fill('admin123');
   await page.getByRole('button', { name: 'Entrar' }).click();
 
-  // IR A VENTAS
-  await page.getByRole('link', { name: '💳 Punto Venta' }).click();
+  // ⏳ esperar dashboard
+  await page.waitForTimeout(2000);
 
-  // BUSCAR PRODUCTO
-  const search = page.getByRole('textbox', { name: '🔍 Escribe el nombre o código' });
-  await search.fill('carlita');
-  await search.press('Enter');
+  // 🧭 IR A PUNTO VENTA
+  await page.locator('text=Punto Venta').click();
 
-  // 🔥 IMPORTANTE: seleccionar el resultado (ESTO FALTABA)
-  await page.getByText('carlita', { exact: false }).click();
+  // 🔎 BUSCAR PRODUCTO
+  const search = page.getByPlaceholder(/escribe el nombre o código/i);
+  await search.fill('car');
 
-  // ESPERAR QUE EL BOTÓN SE ACTIVE (NO waitForTimeout)
-  const btn = page.getByRole('button', { name: 'FINALIZAR VENTA' });
+  // 📦 seleccionar producto correcto
+  const producto = page.locator('text=Carlita').first();
+  await expect(producto).toBeVisible({ timeout: 10000 });
+  await producto.click();
 
-  await expect(btn).toBeEnabled();
+  // 🧺 VALIDAR QUE SE AGREGA AL CARRITO
+  await expect(page.getByText('1 Items')).toBeVisible({ timeout: 10000 });
 
-  // CLICK FINAL
+  // 🔥 IMPORTANTE: esperar a que React habilite botón
+  const btn = page.getByRole('button', { name: /finalizar venta/i });
+
+  // 👇 CLAVE: esperar que deje de estar disabled
+  await expect(btn).toBeVisible();
+
+  await expect.poll(async () => {
+    return await btn.isEnabled();
+  }, {
+    timeout: 15000
+  }).toBe(true);
+
+  // 🟢 CLICK FINAL
   await btn.click();
 });

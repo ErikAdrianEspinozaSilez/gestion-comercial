@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 
 const Login: React.FC = () => {
@@ -10,22 +10,30 @@ const Login: React.FC = () => {
 
   const { login } = useAuth();
 
+  const toastStyle = {
+    borderRadius: '12px',
+    fontWeight: '600',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!username.trim() || !password.trim()) {
       toast.error('Completa usuario y contraseña', {
+        id: 'campos-vacios-login',
         icon: '⚠️',
         duration: 3000,
         style: {
-          borderRadius: '12px',
+          ...toastStyle,
           background: '#fee2e2',
           color: '#991b1b',
-          fontWeight: '600'
-        }
+        },
       });
       return;
     }
+
+    if (cargando) return;
 
     setCargando(true);
 
@@ -33,39 +41,39 @@ const Login: React.FC = () => {
       const res = await axios.post(
         'https://gestion-comercial-j3ed.onrender.com/auth/login',
         {
-          username: username,
-          password: password
+          username,
+          password,
         }
       );
 
       if (res.data.user?.activo === false) {
         toast.error('Este usuario fue dado de baja. No puede ingresar al sistema.', {
+          id: 'usuario-inactivo-login',
           icon: '🚫',
           duration: 3500,
           style: {
-            borderRadius: '12px',
+            ...toastStyle,
             background: '#fee2e2',
             color: '#991b1b',
-            fontWeight: '600'
-          }
+          },
         });
         return;
       }
 
       toast.success('Inicio de sesión correcto', {
+        id: 'login-correcto',
         icon: '✅',
         duration: 2000,
         style: {
-          borderRadius: '12px',
+          ...toastStyle,
           background: '#dcfce7',
           color: '#166534',
-          fontWeight: '600'
-        }
+        },
       });
 
       login(res.data.user);
     } catch (err: any) {
-      console.error("Error completo:", err);
+      console.error('Error completo:', err);
 
       const mensajeBackend =
         err.response?.data?.message ||
@@ -73,14 +81,14 @@ const Login: React.FC = () => {
         err.response?.data?.error;
 
       toast.error(mensajeBackend || 'No se pudo iniciar sesión', {
+        id: 'error-login',
         icon: '❌',
         duration: 3500,
         style: {
-          borderRadius: '12px',
+          ...toastStyle,
           background: '#fee2e2',
           color: '#991b1b',
-          fontWeight: '600'
-        }
+        },
       });
     } finally {
       setCargando(false);
@@ -90,105 +98,370 @@ const Login: React.FC = () => {
   return (
     <div
       style={{
+        minHeight: '100vh',
+        width: '100%',
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
-        padding: '20px',
-        boxSizing: 'border-box'
+        background:
+          'radial-gradient(circle at top left, #2563eb 0%, #0f172a 42%, #020617 100%)',
+        overflow: 'hidden',
+        position: 'relative',
+        fontFamily: 'Inter, system-ui, Arial, sans-serif',
       }}
     >
-      <Toaster position="top-right" />
-
-      <form
-        onSubmit={handleLogin}
+      {/* Decoración de fondo */}
+      <div
         style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '20px',
-          width: '320px',
-          maxWidth: '100%',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          position: 'absolute',
+          width: '420px',
+          height: '420px',
+          borderRadius: '50%',
+          background: 'rgba(59, 130, 246, 0.25)',
+          filter: 'blur(80px)',
+          top: '-120px',
+          left: '-120px',
+        }}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
+          width: '380px',
+          height: '380px',
+          borderRadius: '50%',
+          background: 'rgba(16, 185, 129, 0.20)',
+          filter: 'blur(90px)',
+          bottom: '-120px',
+          right: '-100px',
+        }}
+      />
+
+      {/* Contenedor principal */}
+      <div
+        style={{
+          width: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '15px'
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px',
+          boxSizing: 'border-box',
+          gap: '70px',
+          flexWrap: 'wrap',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
-        <h2
+        {/* Formulario */}
+        <form
+          onSubmit={handleLogin}
           style={{
-            textAlign: 'center',
-            marginBottom: '20px',
-            color: '#1e3a8a'
+            width: '380px',
+            maxWidth: '100%',
+            background: 'rgba(255, 255, 255, 0.96)',
+            padding: '36px',
+            borderRadius: '26px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            border: '1px solid rgba(255,255,255,0.5)',
           }}
         >
-          🔐 Iniciar Sesión
-        </h2>
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, #2563eb, #10b981)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '30px',
+              margin: '0 auto 8px auto',
+              boxShadow: '0 12px 25px rgba(37, 99, 235, 0.35)',
+            }}
+          >
+            🛒
+          </div>
 
-        <input
-          placeholder="Usuario"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px',
-            margin: '0',
-            boxSizing: 'border-box',
-            borderRadius: '10px',
-            border: '1px solid #cbd5e1',
-            fontSize: '14px',
-            outline: 'none',
-            transition: 'all 0.2s ease-in-out'
-          }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-          onBlur={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
-        />
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <h2
+              style={{
+                margin: 0,
+                color: '#0f172a',
+                fontSize: '28px',
+                fontWeight: '900',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              Iniciar Sesión
+            </h2>
 
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px',
-            margin: '0',
-            boxSizing: 'border-box',
-            borderRadius: '10px',
-            border: '1px solid #cbd5e1',
-            fontSize: '14px',
-            outline: 'none',
-            transition: 'all 0.2s ease-in-out'
-          }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-          onBlur={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
-        />
+            <p
+              style={{
+                margin: '8px 0 0 0',
+                color: '#64748b',
+                fontSize: '14px',
+              }}
+            >
+              Ingresa tus datos para acceder al sistema
+            </p>
+          </div>
 
-        <button
-          type="submit"
-          disabled={cargando}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '6px',
+                color: '#334155',
+                fontSize: '13px',
+                fontWeight: '700',
+              }}
+            >
+              Usuario
+            </label>
+
+            <input
+              placeholder="Escribe tu usuario"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              style={{
+                width: '100%',
+                padding: '14px 15px',
+                boxSizing: 'border-box',
+                borderRadius: '14px',
+                border: '1px solid #cbd5e1',
+                fontSize: '15px',
+                outline: 'none',
+                transition: 'all 0.2s ease-in-out',
+                background: '#f8fafc',
+                color: '#0f172a',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#2563eb';
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.boxShadow =
+                  '0 0 0 4px rgba(37, 99, 235, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = '#cbd5e1';
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '6px',
+                color: '#334155',
+                fontSize: '13px',
+                fontWeight: '700',
+              }}
+            >
+              Contraseña
+            </label>
+
+            <input
+              type="password"
+              placeholder="Escribe tu contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              style={{
+                width: '100%',
+                padding: '14px 15px',
+                boxSizing: 'border-box',
+                borderRadius: '14px',
+                border: '1px solid #cbd5e1',
+                fontSize: '15px',
+                outline: 'none',
+                transition: 'all 0.2s ease-in-out',
+                background: '#f8fafc',
+                color: '#0f172a',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#2563eb';
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.boxShadow =
+                  '0 0 0 4px rgba(37, 99, 235, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = '#cbd5e1';
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={cargando}
+            style={{
+              width: '100%',
+              padding: '15px',
+              marginTop: '8px',
+              background: cargando
+                ? '#94a3b8'
+                : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '15px',
+              cursor: cargando ? 'not-allowed' : 'pointer',
+              fontWeight: '900',
+              fontSize: '15px',
+              transition: 'all 0.2s ease-in-out',
+              boxShadow: cargando
+                ? 'none'
+                : '0 12px 25px rgba(37, 99, 235, 0.32)',
+            }}
+            onMouseEnter={(e) => {
+              if (!cargando) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow =
+                  '0 16px 30px rgba(37, 99, 235, 0.42)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!cargando) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow =
+                  '0 12px 25px rgba(37, 99, 235, 0.32)';
+              }
+            }}
+          >
+            {cargando ? 'Ingresando...' : 'Entrar al sistema'}
+          </button>
+
+          <div
+            style={{
+              marginTop: '10px',
+              padding: '12px',
+              background: '#f1f5f9',
+              borderRadius: '14px',
+              textAlign: 'center',
+              color: '#64748b',
+              fontSize: '12px',
+              fontWeight: '600',
+            }}
+          >
+            Sistema de gestión comercial
+          </div>
+        </form>
+
+        {/* Texto grande derecho */}
+        <div
           style={{
-            width: '100%',
-            padding: '12px',
-            background: cargando ? '#94a3b8' : '#3b82f6',
+            maxWidth: '560px',
             color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            cursor: cargando ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-            fontSize: '15px',
-            transition: 'all 0.2s ease-in-out'
-          }}
-          onMouseEnter={(e) => {
-            if (!cargando) e.currentTarget.style.backgroundColor = '#2563eb';
-          }}
-          onMouseLeave={(e) => {
-            if (!cargando) e.currentTarget.style.backgroundColor = '#3b82f6';
+            textAlign: 'left',
           }}
         >
-          {cargando ? 'Ingresando...' : 'Entrar'}
-        </button>
-      </form>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 14px',
+              borderRadius: '999px',
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: '#bfdbfe',
+              fontSize: '14px',
+              fontWeight: '700',
+              marginBottom: '22px',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            🛍️ Sistema de ventas e inventario
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              fontSize: '72px',
+              lineHeight: '0.95',
+              fontWeight: '1000',
+              letterSpacing: '-3px',
+              textTransform: 'uppercase',
+              textShadow: '0 18px 45px rgba(0,0,0,0.35)',
+            }}
+          >
+            SUPER
+            <br />
+            VALLE
+            <br />
+            MARKET
+          </h1>
+
+          <p
+            style={{
+              marginTop: '24px',
+              fontSize: '18px',
+              lineHeight: '1.6',
+              color: '#cbd5e1',
+              maxWidth: '450px',
+            }}
+          >
+            Controla tus productos, ventas, stock y movimientos desde una sola
+            plataforma moderna, rápida y segura.
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap',
+              marginTop: '26px',
+            }}
+          >
+            <span
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(16, 185, 129, 0.18)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '12px',
+                color: '#bbf7d0',
+                fontWeight: '700',
+                fontSize: '13px',
+              }}
+            >
+              ✅ Ventas
+            </span>
+
+            <span
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(59, 130, 246, 0.18)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                borderRadius: '12px',
+                color: '#bfdbfe',
+                fontWeight: '700',
+                fontSize: '13px',
+              }}
+            >
+              📦 Inventario
+            </span>
+
+            <span
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(245, 158, 11, 0.18)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: '12px',
+                color: '#fde68a',
+                fontWeight: '700',
+                fontSize: '13px',
+              }}
+            >
+              📊 Reportes
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

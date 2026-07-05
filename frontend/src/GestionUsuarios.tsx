@@ -202,7 +202,6 @@ const GestionUsuarios: React.FC = () => {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Toaster position="top-right" />
 
       <h2 style={{ marginBottom: '25px', color: '#1e293b', fontWeight: '800' }}>
         👥 Gestión de Usuarios

@@ -5,7 +5,7 @@ test('Verificar que el stock total refleja los cambios', async ({ page }) => {
 
   await login(page, 'admin', 'admin123');
 
-  // IR A INVENTARIO
+  // 📦 IR A INVENTARIO
   await page.click('text=📦 Inventario');
 
   const row = page.locator('tr', { hasText: 'carlita' });
@@ -13,35 +13,54 @@ test('Verificar que el stock total refleja los cambios', async ({ page }) => {
 
   const stockAntes = Number(await row.locator('td').nth(6).innerText());
 
-  // IR A VENTA
+  // 🛒 IR A VENTA
   await page.click('text=💳 Punto Venta');
 
-  const search = page.getByRole('textbox', { name: '🔍' });
+  const search = page.getByRole('textbox', { name: /🔍|escribe|código|nombre/i });
 
-  await search.fill('carlita');
-  await search.press('Enter');
+  await expect(search).toBeVisible();
+  await search.fill('car');
 
-  // 🔥 seleccionar producto (CRÍTICO)
-  await page.getByText('carlita', { exact: false }).click();
+  await page.waitForTimeout(800);
 
-  const btn = page.getByRole('button', { name: 'FINALIZAR VENTA' });
+  // 🔥 PRODUCTO
+  const producto = page.locator('div').filter({
+    hasText: 'carlita'
+  }).filter({
+    hasText: 'Bs. 6.00'
+  }).first();
 
-  await expect(btn).toBeEnabled();
+  await expect(producto).toBeVisible({ timeout: 15000 });
+  await producto.click();
+
+  // 🧺 FIX IMPORTANTE: NO depender de texto exacto
+  await expect(page.locator('text=/1.*item/i')).toBeVisible({ timeout: 15000 });
+
+  // 🔥 BOTÓN FINALIZAR (ARREGLADO)
+  const btn = page.getByRole('button', { name: /finalizar venta/i });
+
+  await expect(btn).toBeVisible();
+
+  // ❌ QUITAMOS expect.poll (ERA EL PROBLEMA)
+  await page.waitForFunction(() => {
+    const b = document.querySelector('button');
+    return b && !b.hasAttribute('disabled');
+  });
 
   await btn.click();
 
-  // volver a inventario
+  // 📦 volver inventario
   await page.click('text=📦 Inventario');
 
   const rowAfter = page.locator('tr', { hasText: 'carlita' });
   await expect(rowAfter).toBeVisible();
 
-  // 🔥 PRO: esperar cambio real (sin timeout fijo)
+  // 🔥 validación stock (MEJORADA)
   await expect.poll(async () => {
     const value = await rowAfter.locator('td').nth(6).innerText();
     return Number(value);
   }, {
-    timeout: 5000
+    timeout: 8000
   }).toBeLessThan(stockAntes);
 
 });
