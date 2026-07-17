@@ -98,15 +98,113 @@ const LectorVentas: React.FC = () => {
     inputRef.current?.focus({ preventScroll: true });
   };
 
-  const cancelarVenta = () => {
-    if (window.confirm("⚠️ ¿Estás seguro de cancelar toda la venta?")) {
-      setCarrito([]);
-      setCodigo('');
-      setBusquedaManual('');
-      toast.success("Venta cancelada correctamente");
-      inputRef.current?.focus();
+const cancelarVenta = () => {
+  toast.custom(
+    (t) => (
+      <div
+        style={{
+          width: '380px',
+          maxWidth: '90vw',
+          padding: '20px',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 15px 35px rgba(0, 0, 0, 0.18)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+          }}
+        >
+          <span style={{ fontSize: '24px' }}>⚠️</span>
+
+          <div>
+            <h3
+              style={{
+                margin: '0 0 6px',
+                color: '#0f172a',
+                fontSize: '17px',
+              }}
+            >
+              Cancelar venta
+            </h3>
+
+            <p
+              style={{
+                margin: 0,
+                color: '#64748b',
+                fontSize: '14px',
+              }}
+            >
+              ¿Estás seguro de cancelar toda la venta?
+            </p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px',
+            marginTop: '20px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => toast.dismiss(t.id)}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '7px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#475569',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Continuar venta
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              toast.dismiss(t.id);
+
+              setCarrito([]);
+              setCodigo('');
+              setBusquedaManual('');
+
+              toast.success('Venta cancelada correctamente');
+
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 0);
+            }}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '7px',
+              border: 'none',
+              backgroundColor: '#ef4444',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Sí, cancelar
+          </button>
+        </div>
+      </div>
+    ),
+    {
+      id: 'cancelar-venta',
+      duration: Infinity,
+      position: 'top-center',
     }
-  };
+  );
+};
 
   const calcularTotal = () => {
     return carrito
