@@ -68,13 +68,24 @@ const ModalComunicacion: React.FC<ModalComunicacionProps> = ({
           
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '5px' }}>Para (Correo del Proveedor):</label>
-            <input 
-              type="email" 
-              value={destino} 
-              onChange={(e) => setDestino(e.target.value)} 
-              required
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}
-            />
+<input
+  type="email"
+  value={destino}
+  onChange={(e) => setDestino(e.target.value)}
+  required
+  style={{
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    backgroundColor: '#f8fafc',
+    color: '#1e293b',
+    WebkitTextFillColor: '#1e293b',
+    caretColor: '#1e293b'
+  }}
+/>
             <span style={{ fontSize: '11px', color: '#64748b' }}>* Por restricciones de la nube, se enviará a tu correo de la UPDS.</span>
           </div>
 

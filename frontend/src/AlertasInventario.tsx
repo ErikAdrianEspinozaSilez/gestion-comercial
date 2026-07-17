@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import ModalComunicacion from './ModalComunicacion';
-
+import toast from 'react-hot-toast';
 const AlertasInventario: React.FC = () => {
   const queryClient = useQueryClient();
 
@@ -22,25 +22,36 @@ const AlertasInventario: React.FC = () => {
     staleTime: 0,
   });
 
-  const mutation = useMutation({
-    mutationFn: async (newEmail: any) => {
-      const res = await axios.post(
-        'https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/enviar-correo',
-        newEmail
-      );
-      return res.data;
-    },
-    onSuccess: () => {
-      alert('✅ Notificación enviada al proveedor con éxito.');
-      setIsModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['stock-bajo'] });
-    },
-    onError: (error) => {
-      console.error('Error al enviar:', error);
-      alert('❌ Error al enviar. Revisa la consola para más detalles.');
-    },
-  });
+const mutation = useMutation({
+  mutationFn: async (newEmail: any) => {
+    const res = await axios.post(
+      'https://gestion-comercial-j3ed.onrender.com/api/comunicaciones/enviar-correo',
+      newEmail
+    );
 
+    return res.data;
+  },
+
+  onSuccess: () => {
+    toast.success('Notificación enviada al proveedor con éxito.');
+
+    setIsModalOpen(false);
+
+    queryClient.invalidateQueries({
+      queryKey: ['stock-bajo'],
+    });
+  },
+
+  onError: (error: any) => {
+    console.error('Error al enviar:', error);
+
+    const mensajeError =
+      error?.response?.data?.message ||
+      'No se pudo enviar la notificación al proveedor.';
+
+    toast.error(mensajeError);
+  },
+});
   const handleNotificarClick = (producto: any) => {
     const stockReal = producto.stock_total ?? 0;
     const provId = producto.proveedor_id ?? 1;
