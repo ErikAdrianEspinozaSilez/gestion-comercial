@@ -35,9 +35,10 @@ const normalizarProductos = (productosIds) => {
   ];
 };
 
-/**
- * Valida los datos recibidos para registrar o actualizar.
- */
+/* =========================================================
+   VALIDAR DATOS DEL PROVEEDOR
+========================================================= */
+
 const validarProveedor = (body) => {
   const errores = {};
 
@@ -45,7 +46,9 @@ const validarProveedor = (body) => {
     body.razon_social
   );
 
-  const nit = normalizarTexto(body.nit);
+  const nit = normalizarTexto(
+    body.nit
+  );
 
   const correoPrincipal = normalizarTexto(
     body.correo_principal
@@ -55,9 +58,7 @@ const validarProveedor = (body) => {
     body.telefono_principal
   );
 
-  const tipoProveedorId = Number(
-    body.tipo_proveedor_id
-  );
+  /* RAZÓN SOCIAL */
 
   if (!razonSocial) {
     errores.razon_social =
@@ -69,6 +70,8 @@ const validarProveedor = (body) => {
     errores.razon_social =
       'La razón social no puede superar los 150 caracteres.';
   }
+
+  /* NIT */
 
   if (!nit) {
     errores.nit =
@@ -84,6 +87,8 @@ const validarProveedor = (body) => {
       'El NIT no puede superar los 20 números.';
   }
 
+  /* CORREO */
+
   if (!correoPrincipal) {
     errores.correo_principal =
       'El correo principal es obligatorio.';
@@ -94,6 +99,8 @@ const validarProveedor = (body) => {
     errores.correo_principal =
       'El correo no puede superar los 150 caracteres.';
   }
+
+  /* TELÉFONO */
 
   if (!telefonoPrincipal) {
     errores.telefono_principal =
@@ -109,13 +116,7 @@ const validarProveedor = (body) => {
       'El teléfono no puede superar los 15 números.';
   }
 
-  if (
-    !Number.isInteger(tipoProveedorId) ||
-    tipoProveedorId <= 0
-  ) {
-    errores.tipo_proveedor_id =
-      'Debes seleccionar un tipo de proveedor válido.';
-  }
+  /* PRODUCTOS */
 
   if (
     body.productos_ids !== undefined &&
@@ -132,7 +133,6 @@ const validarProveedor = (body) => {
       nit,
       correo_principal: correoPrincipal,
       telefono_principal: telefonoPrincipal,
-      tipo_proveedor_id: tipoProveedorId,
       productos_ids: normalizarProductos(
         body.productos_ids
       )
@@ -140,9 +140,10 @@ const validarProveedor = (body) => {
   };
 };
 
-/**
- * Envía mensajes claros según el error de PostgreSQL.
- */
+/* =========================================================
+   RESPUESTAS DE ERROR DE POSTGRESQL
+========================================================= */
+
 const responderErrorBaseDatos = (
   error,
   res,
@@ -154,16 +155,17 @@ const responderErrorBaseDatos = (
       message: error.message,
       code: error.code,
       detail: error.detail,
+      column: error.column,
       constraint: error.constraint
     }
   );
 
-  /*
-    23505: unique_violation
-  */
+  /* DATO DUPLICADO */
+
   if (error.code === '23505') {
-    const detalle =
-      String(error.detail || '').toLowerCase();
+    const detalle = String(
+      error.detail || ''
+    ).toLowerCase();
 
     if (detalle.includes('nit')) {
       return res.status(409).json({
@@ -186,30 +188,18 @@ const responderErrorBaseDatos = (
 
     return res.status(409).json({
       error:
-        'Ya existe un registro con esos datos.'
+        'Ya existe un proveedor con esos datos.'
     });
   }
 
-  /*
-    23503: foreign_key_violation
-  */
+  /* CLAVE FORÁNEA */
+
   if (error.code === '23503') {
     const detalle = String(
-      error.detail || error.message || ''
+      error.detail ||
+      error.message ||
+      ''
     ).toLowerCase();
-
-    if (
-      detalle.includes('tipo_proveedor') ||
-      String(error.constraint || '')
-        .toLowerCase()
-        .includes('tipo_proveedor')
-    ) {
-      return res.status(400).json({
-        error:
-          'El tipo de proveedor seleccionado no existe en la base de datos.',
-        campo: 'tipo_proveedor_id'
-      });
-    }
 
     if (
       detalle.includes('producto') ||
@@ -230,9 +220,8 @@ const responderErrorBaseDatos = (
     });
   }
 
-  /*
-    23502: not_null_violation
-  */
+  /* COLUMNA OBLIGATORIA */
+
   if (error.code === '23502') {
     return res.status(400).json({
       error: `El campo ${
@@ -242,9 +231,8 @@ const responderErrorBaseDatos = (
     });
   }
 
-  /*
-    22P02: invalid_text_representation
-  */
+  /* FORMATO INCORRECTO */
+
   if (error.code === '22P02') {
     return res.status(400).json({
       error:
@@ -263,7 +251,7 @@ const responderErrorBaseDatos = (
 };
 
 /* =========================================================
-   GET: OBTENER PROVEEDORES Y PRODUCTOS RELACIONADOS
+   GET: OBTENER PROVEEDORES
 ========================================================= */
 
 router.get('/', async (req, res) => {
@@ -305,7 +293,9 @@ router.get('/', async (req, res) => {
 
     const result = await pool.query(query);
 
-    return res.status(200).json(result.rows);
+    return res.status(200).json(
+      result.rows
+    );
   } catch (error) {
     return responderErrorBaseDatos(
       error,
@@ -346,7 +336,6 @@ router.post('/', async (req, res) => {
         nit,
         correo_principal,
         telefono_principal,
-        tipo_proveedor_id,
         activo
       )
       VALUES (
@@ -354,7 +343,6 @@ router.post('/', async (req, res) => {
         $2,
         $3,
         $4,
-        $5,
         true
       )
       RETURNING
@@ -363,7 +351,6 @@ router.post('/', async (req, res) => {
         nit,
         correo_principal,
         telefono_principal,
-        tipo_proveedor_id,
         activo
     `;
 
@@ -373,8 +360,7 @@ router.post('/', async (req, res) => {
         datos.razon_social,
         datos.nit,
         datos.correo_principal,
-        datos.telefono_principal,
-        datos.tipo_proveedor_id
+        datos.telefono_principal
       ]
     );
 
@@ -481,10 +467,9 @@ router.put('/:id', async (req, res) => {
         razon_social = $1,
         nit = $2,
         correo_principal = $3,
-        telefono_principal = $4,
-        tipo_proveedor_id = $5
+        telefono_principal = $4
 
-      WHERE proveedor_id = $6
+      WHERE proveedor_id = $5
 
       RETURNING
         proveedor_id,
@@ -492,7 +477,6 @@ router.put('/:id', async (req, res) => {
         nit,
         correo_principal,
         telefono_principal,
-        tipo_proveedor_id,
         activo
     `;
 
@@ -504,7 +488,6 @@ router.put('/:id', async (req, res) => {
           datos.nit,
           datos.correo_principal,
           datos.telefono_principal,
-          datos.tipo_proveedor_id,
           proveedorId
         ]
       );
