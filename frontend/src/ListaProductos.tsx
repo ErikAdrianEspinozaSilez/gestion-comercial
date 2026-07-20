@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -13,6 +13,8 @@ const ListaProductos: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const productosPorPagina = 25;
 
   const [editData, setEditData] = useState({
     nombre_producto: '',
@@ -112,6 +114,23 @@ const ListaProductos: React.FC = () => {
     return coincideNombre || coincideCodigo;
   });
 
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil((productosFiltrados?.length || 0) / productosPorPagina)
+  );
+
+  const indiceInicial = (currentPage - 1) * productosPorPagina;
+  const productosPaginados = productosFiltrados?.slice(
+    indiceInicial,
+    indiceInicial + productosPorPagina
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPaginas) {
+      setCurrentPage(totalPaginas);
+    }
+  }, [currentPage, totalPaginas]);
+
   if (isLoading) return <p>Cargando inventario...</p>;
 
   const rol = Number(user?.rol_id);
@@ -149,7 +168,10 @@ const ListaProductos: React.FC = () => {
         type="text"
         placeholder="🔍 Buscar producto por nombre o código..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setCurrentPage(1);
+        }}
         style={{
           width: '100%',
           padding: '14px',
@@ -194,7 +216,7 @@ const ListaProductos: React.FC = () => {
           </thead>
 
           <tbody>
-            {productosFiltrados?.map((p: any) => (
+            {productosPaginados?.map((p: any) => (
               <tr
                 key={p.producto_id}
                 style={{
@@ -282,6 +304,59 @@ const ListaProductos: React.FC = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div style={{
+        marginTop: '16px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          type="button"
+          onClick={() => setCurrentPage((pagina) => Math.max(1, pagina - 1))}
+          disabled={currentPage === 1}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: currentPage === 1 ? '#cbd5e1' : '#2563eb',
+            color: 'white',
+            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Anterior
+        </button>
+
+        <span style={{
+          color: '#475569',
+          fontWeight: '600',
+          fontSize: '14px'
+        }}>
+          Página {currentPage} de {totalPaginas}
+        </span>
+
+        <button
+          type="button"
+          onClick={() =>
+            setCurrentPage((pagina) => Math.min(totalPaginas, pagina + 1))
+          }
+          disabled={currentPage === totalPaginas}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: currentPage === totalPaginas ? '#cbd5e1' : '#2563eb',
+            color: 'white',
+            cursor: currentPage === totalPaginas ? 'not-allowed' : 'pointer',
+            fontWeight: '600'
+          }}
+        >
+          Siguiente
+        </button>
       </div>
 
 

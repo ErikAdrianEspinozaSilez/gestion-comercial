@@ -141,6 +141,7 @@ const GlobalStockToasts = () => {
       {/* 📱 MODAL MOBILE */}
       {showExtraAlerts && (
         <div
+          onClick={() => setShowExtraAlerts(false)}
           style={{
             position: 'fixed',
             inset: 0,
@@ -152,6 +153,7 @@ const GlobalStockToasts = () => {
           }}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
               maxHeight: '70vh',
@@ -233,7 +235,8 @@ const GlobalStockToasts = () => {
             style={{
               pointerEvents: 'auto',
               width: isHovered ? '330px' : '215px',
-              height: isHovered ? '150px' : '50px',
+              height: isHovered ? 'auto' : '50px',
+              maxHeight: isHovered ? 'calc(100vh - 60px)' : '50px',
               backgroundColor: alerta.fondo,
               border: `1px solid ${alerta.color}`,
               borderLeft: `6px solid ${alerta.color}`,
@@ -242,7 +245,8 @@ const GlobalStockToasts = () => {
                 ? '0 18px 35px rgba(15, 23, 42, 0.28)'
                 : '0 8px 22px rgba(15, 23, 42, 0.18)',
               padding: '10px 12px',
-              overflow: 'hidden',
+              overflowX: 'hidden',
+              overflowY: isHovered ? 'auto' : 'hidden',
               transition: 'all 0.25s ease',
               cursor: 'default',
               transform: isHovered ? 'translateY(4px)' : 'translateY(0)',
@@ -260,9 +264,9 @@ const GlobalStockToasts = () => {
                 style={{
                   color: alerta.color,
                   fontSize: '13px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  whiteSpace: isHovered ? 'normal' : 'nowrap',
+                  overflow: isHovered ? 'visible' : 'hidden',
+                  textOverflow: isHovered ? 'clip' : 'ellipsis',
                 }}
               >
                 {alerta.icono} {alerta.titulo}
@@ -297,9 +301,9 @@ const GlobalStockToasts = () => {
                 color: '#0f172a',
                 fontSize: '13px',
                 fontWeight: '700',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                whiteSpace: isHovered ? 'normal' : 'nowrap',
+                overflow: isHovered ? 'visible' : 'hidden',
+                textOverflow: isHovered ? 'clip' : 'ellipsis',
               }}
             >
               {alerta.producto.nombre_producto}

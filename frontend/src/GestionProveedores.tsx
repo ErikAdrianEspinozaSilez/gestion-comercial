@@ -112,11 +112,26 @@ const GestionProveedores: React.FC = () => {
     queryKey: ["productos"],
     queryFn: async () => {
       const respuesta = await axios.get<Producto[]>(`${BASE_URL}/productos`);
+      const productos = Array.isArray(respuesta.data) ? respuesta.data : [];
 
-      return Array.isArray(respuesta.data) ? respuesta.data : [];
+      // PostgreSQL puede devolver los identificadores como texto.
+      // Aquí se normalizan para que la selección siempre compare números.
+      return productos
+        .map((producto) => ({
+          ...producto,
+          producto_id: Number(producto.producto_id),
+        }))
+        .filter(
+          (producto) =>
+            Number.isInteger(producto.producto_id) && producto.producto_id > 0,
+        );
     },
     retry: false,
   });
+
+  // Si ya existen productos en memoria, no se muestra el mensaje de carga.
+  const productosCargando =
+    cargandoProductos && listaProductos.length === 0;
 
   /* =====================================================
      CONSULTA DE PROVEEDORES
@@ -471,15 +486,36 @@ const GestionProveedores: React.FC = () => {
      SELECCIONAR O QUITAR PRODUCTO
   ===================================================== */
 
-  const toggleProducto = (productoId: number) => {
+  const actualizarSeleccionProducto = (
+    productoIdOriginal: number,
+    debeEstarSeleccionado: boolean,
+  ) => {
+    const productoId = Number(productoIdOriginal);
+
+    if (!Number.isInteger(productoId) || productoId <= 0) {
+      console.error("ID de producto inválido:", productoIdOriginal);
+      return;
+    }
+
     setSelectedProds((prev) => {
-      if (prev.includes(productoId)) {
-        return prev.filter((id) => id !== productoId);
+      const idsNormalizados = [
+        ...new Set(
+          prev
+            .map(Number)
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ),
+      ];
+
+      if (debeEstarSeleccionado) {
+        return idsNormalizados.includes(productoId)
+          ? idsNormalizados
+          : [...idsNormalizados, productoId];
       }
 
-      return [...prev, productoId];
+      return idsNormalizados.filter((id) => id !== productoId);
     });
   };
+
 
   /* =====================================================
      FILTRAR PRODUCTOS
@@ -867,14 +903,14 @@ const GestionProveedores: React.FC = () => {
                   fontWeight: "bold",
                 }}
               >
-                {selectedProds.length} seleccionados
+                {selectedProds.length} {selectedProds.length === 1 ? "seleccionado" : "seleccionados"}
               </span>
             </div>
 
             <input
               type="text"
               value={busquedaProducto}
-              disabled={cargandoProductos || errorProductos}
+              disabled={productosCargando || errorProductos}
               onClick={() => setMostrarSelectorProductos(true)}
               onFocus={() => setMostrarSelectorProductos(true)}
               onChange={(event) => {
@@ -883,7 +919,7 @@ const GestionProveedores: React.FC = () => {
                 setMostrarSelectorProductos(true);
               }}
               placeholder={
-                cargandoProductos
+                productosCargando
                   ? "Cargando productos..."
                   : errorProductos
                     ? "No se pudieron cargar los productos"
@@ -899,7 +935,7 @@ const GestionProveedores: React.FC = () => {
                 boxSizing: "border-box",
                 marginBottom: mostrarSelectorProductos ? "8px" : "0",
                 backgroundColor:
-                  cargandoProductos || errorProductos ? "#f1f5f9" : "#ffffff",
+                  productosCargando || errorProductos ? "#f1f5f9" : "#ffffff",
               }}
             />
 
@@ -946,7 +982,7 @@ const GestionProveedores: React.FC = () => {
 
             {mostrarSelectorProductos &&
               !errorProductos &&
-              !cargandoProductos && (
+              !productosCargando && (
                 <div
                   style={{
                     backgroundColor: "#ffffff",
@@ -1000,14 +1036,18 @@ const GestionProveedores: React.FC = () => {
 
                   {productosFiltrados.length > 0 ? (
                     productosFiltrados.map((producto) => {
-                      const seleccionado = selectedProds.includes(
-                        producto.producto_id,
-                      );
+                      const productoId = Number(producto.producto_id);
+                      const seleccionado = selectedProds.includes(productoId);
 
                       return (
                         <div
-                          key={producto.producto_id}
-                          onClick={() => toggleProducto(producto.producto_id)}
+                          key={productoId}
+                          onClick={() =>
+                            actualizarSeleccionProducto(
+                              productoId,
+                              !seleccionado,
+                            )
+                          }
                           style={{
                             display: "grid",
                             gridTemplateColumns: "34px 1fr auto",
@@ -1088,8 +1128,11 @@ const GestionProveedores: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={seleccionado}
-                            onChange={() =>
-                              toggleProducto(producto.producto_id)
+                            onChange={(event) =>
+                              actualizarSeleccionProducto(
+                                productoId,
+                                event.target.checked,
+                              )
                             }
                             onClick={(event) => event.stopPropagation()}
                             style={{
