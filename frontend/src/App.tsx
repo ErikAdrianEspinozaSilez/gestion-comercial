@@ -36,8 +36,21 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!user) return <Login />;
+if (!user) {
+  return (
+    <>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 4000,
+        }}
+      />
 
+      <Login />
+    </>
+  );
+}
   const rol = Number(user.rol_id);
 
   const navLinkStyle = ({ isActive }: { isActive: boolean }) => ({
