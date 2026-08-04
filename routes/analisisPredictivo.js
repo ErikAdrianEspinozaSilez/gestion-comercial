@@ -367,4 +367,66 @@ router.get('/estimacion/:productoId', async (req, res) => {
   }
 });
 
+
+// 4. Top 5 de productos activos más vendidos en los últimos 30 días
+// Se utilizará posteriormente en la tarjeta rotativa del Dashboard.
+router.get('/top-productos', async (_req, res) => {
+  try {
+    const [productosResult, periodoResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          p.producto_id,
+          p.nombre_producto,
+          p.imagen_url,
+          p.precio,
+          SUM(f.cantidad)::numeric AS cantidad_vendida
+        FROM gestion_comercial.fact_movimiento_inventario f
+        INNER JOIN gestion_comercial.dim_producto p
+          ON p.producto_id = f.producto_id
+        INNER JOIN gestion_comercial.dim_tipo_movimiento tm
+          ON tm.tipo_movimiento_id = f.tipo_movimiento_id
+        WHERE p.activo = TRUE
+          AND tm.nombre_tipo = 'salida_venta'
+          AND COALESCE(f.precio, 0) > 0
+          AND f.fecha_registro >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+          AND f.fecha_registro <= CURRENT_TIMESTAMP
+        GROUP BY
+          p.producto_id,
+          p.nombre_producto,
+          p.imagen_url,
+          p.precio
+        ORDER BY
+          SUM(f.cantidad) DESC,
+          p.nombre_producto ASC
+        LIMIT 5
+      `),
+      pool.query(`
+        SELECT
+          TO_CHAR((CURRENT_TIMESTAMP - INTERVAL '30 days')::date, 'YYYY-MM-DD') AS inicio,
+          TO_CHAR(CURRENT_TIMESTAMP::date, 'YYYY-MM-DD') AS fin
+      `)
+    ]);
+
+    const productos = productosResult.rows.map((fila, indice) => ({
+      posicion: indice + 1,
+      producto_id: fila.producto_id,
+      nombre_producto: fila.nombre_producto,
+      imagen_url: fila.imagen_url,
+      precio: fila.precio,
+      cantidad_vendida: Number(fila.cantidad_vendida)
+    }));
+
+    return res.status(200).json({
+      periodo: periodoResult.rows[0],
+      cantidad_productos: productos.length,
+      productos
+    });
+  } catch (error) {
+    console.error('Error al obtener el Top 5 de productos:', error.message);
+    return res.status(500).json({
+      error: 'No se pudieron obtener los productos más vendidos.'
+    });
+  }
+});
+
 module.exports = router;
