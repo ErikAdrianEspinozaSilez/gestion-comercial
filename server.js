@@ -12,16 +12,16 @@ const proveedoresRouter = require('./routes/proveedores');
 const comunicacionesRouter = require('./routes/comunicaciones');
 const authRouter = require('./routes/auth');
 const usuariosRouter = require('./routes/usuarios');
+const analisisPredictivoRouter = require('./routes/analisisPredictivo');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 🛠️ SOLUCIÓN CORS: Le damos permiso VIP a tu Vercel y a tu localhost
 const corsOptions = {
-    origin: ['http://localhost:5173', 'https://gestion-comercial-six.vercel.app'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'] // Aseguramos que pasen los tokens de login
+  origin: ['http://localhost:5173', 'https://gestion-comercial-six.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 
@@ -31,15 +31,15 @@ app.use(express.json());
 app.use('/usuarios', usuariosRouter);
 app.use('/productos', productosRouter);
 app.use('/movimientos', movimientosRouter);
+app.use('/analisis-predictivo', analisisPredictivoRouter);
 app.use('/api/proveedores', proveedoresRouter);
 app.use('/api/comunicaciones', comunicacionesRouter);
 app.use('/auth', authRouter);
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('¡Backend Super Valle - 100% Optimizado! 🚀');
 });
 
-// Servidor escuchando
 app.listen(port, () => {
   console.log(`🚀 Servidor escuchando en el puerto ${port}`);
 });
