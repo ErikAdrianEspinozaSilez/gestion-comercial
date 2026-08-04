@@ -118,7 +118,7 @@ router.get('/historial/:productoId', async (req, res) => {
           ON tm.tipo_movimiento_id = f.tipo_movimiento_id
         WHERE f.producto_id = $1
           AND tm.nombre_tipo = 'salida_venta'
-          AND f.ubicacion_id = 2
+          AND COALESCE(f.precio, 0) > 0
         GROUP BY DATE_TRUNC('${truncamiento}', f.fecha_registro)::date
       )
       SELECT
