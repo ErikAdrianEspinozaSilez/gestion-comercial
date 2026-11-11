@@ -362,7 +362,7 @@ const HistorialMovimientos: React.FC = () => {
               backgroundColor: '#2563eb'
             }}
           >
-            ⚙️ Generar PDF
+            Generar PDF
           </button>
         </div>
       </div>

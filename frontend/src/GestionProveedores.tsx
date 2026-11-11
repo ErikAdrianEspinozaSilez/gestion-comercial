@@ -724,7 +724,7 @@ const GestionProveedores: React.FC = () => {
             marginBottom: "6px",
           }}
         >
-          {isEditing ? "✏️ Editar proveedor" : "➕ Registrar proveedor"}
+          {isEditing ? "Editar proveedor" : "Registrar proveedor"}
         </h3>
 
         <p
@@ -1354,7 +1354,7 @@ const GestionProveedores: React.FC = () => {
                           cursor: "pointer",
                         }}
                       >
-                        ✏️ Editar
+                        Editar
                       </button>
                     </td>
                   </tr>

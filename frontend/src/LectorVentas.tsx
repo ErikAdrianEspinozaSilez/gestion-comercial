@@ -457,7 +457,7 @@ const finalizarVenta = async () => {
             color: '#94a3b8'
           }}>
             <div style={{ fontSize: '64px', marginBottom: '15px' }}>
-              🛒
+              
             </div>
 
             <p style={{ fontSize: '18px' }}>

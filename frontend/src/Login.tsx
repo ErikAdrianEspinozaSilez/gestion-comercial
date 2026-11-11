@@ -376,7 +376,7 @@ const Login: React.FC = () => {
               backdropFilter: 'blur(8px)',
             }}
           >
-            🛍️ Sistema de ventas e inventario
+            Sistema de ventas e inventario
           </div>
 
           <h1
@@ -429,7 +429,7 @@ const Login: React.FC = () => {
                 fontSize: '13px',
               }}
             >
-              ✅ Ventas
+              Ventas
             </span>
 
             <span
@@ -443,7 +443,7 @@ const Login: React.FC = () => {
                 fontSize: '13px',
               }}
             >
-              📦 Inventario
+              Inventario
             </span>
 
             <span
@@ -457,7 +457,7 @@ const Login: React.FC = () => {
                 fontSize: '13px',
               }}
             >
-              📊 Reportes
+              Reportes
             </span>
           </div>
         </div>

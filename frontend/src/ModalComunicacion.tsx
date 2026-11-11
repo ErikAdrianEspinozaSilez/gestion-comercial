@@ -23,7 +23,7 @@ const ModalComunicacion: React.FC<ModalComunicacionProps> = ({
       setDestino(datosPredefinidos.correo_principal || 'cb.erik.espinoza.s@upds.net.bo');
       setAsunto(`Pedido de Reabastecimiento: ${datosPredefinidos.nombre_producto} - Super Valle Market`);
       
-      const textoMensaje = `Estimado Proveedor,\n\nMediante la presente solicitamos formalmente el reabastecimiento del siguiente producto para el Super Valle Market:\n\n📦 Producto: ${datosPredefinidos.nombre_producto}\n🔢 Código: ${datosPredefinidos.codigo_barra || 'N/A'}\n📉 Nivel de Stock Actual: ${datosPredefinidos.cantidad_actual || 0} unidades.\n\nPor favor, confirme la disponibilidad y el tiempo estimado de entrega haciendo clic en el botón de confirmación que aparece abajo.\n\nAtentamente,\nAdministración Super Valle Market`;
+      const textoMensaje = `Estimado Proveedor,\n\nMediante la presente solicitamos formalmente el reabastecimiento del siguiente producto para el Super Valle Market:\n\n -Producto: ${datosPredefinidos.nombre_producto}\n -Código: ${datosPredefinidos.codigo_barra || 'N/A'}\n -Nivel de Stock Actual: ${datosPredefinidos.cantidad_actual || 0} unidades.\n\nPor favor, confirme la disponibilidad y el tiempo estimado de entrega haciendo clic en el botón de confirmación que aparece abajo.\n\nAtentamente,\nAdministración Super Valle Market`;
       
       setMensaje(textoMensaje);
     }
@@ -124,7 +124,7 @@ const ModalComunicacion: React.FC<ModalComunicacionProps> = ({
               type="submit"
               style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
             >
-              🚀 Enviar Pedido
+              Enviar Pedido
             </button>
           </div>
         </form>
